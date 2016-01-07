@@ -1366,6 +1366,7 @@ print_state(State = #state{pres_t = T, pres_f = F, pres_a = A, pres_i = I}) ->
 %% Purpose: Shutdown the fsm
 %% Returns: any
 %%----------------------------------------------------------------------
+%% C2S崩溃的时候，直接处理掉自己相关的信息
 -spec terminate(Reason :: any(), statename(), state()) -> ok.
 terminate(_Reason, StateName, StateData) ->
     case  should_close_session(StateName) of
@@ -1441,6 +1442,7 @@ terminate(_Reason, StateName, StateData) ->
         false ->
             ok
     end,
+    %% 最后时刻，干掉Socket
     (StateData#state.sockmod):close(StateData#state.socket),
     ok.
 

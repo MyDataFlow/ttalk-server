@@ -312,6 +312,7 @@ accept(ListenSocket, Module, Opts) ->
                 _ ->
                     ok
             end,
+            %% 直接使用ejabberd_socket开启子进程
             ejabberd_socket:start(Module, gen_tcp, Socket, Opts),
             accept(ListenSocket, Module, Opts);
         {error, Reason} ->

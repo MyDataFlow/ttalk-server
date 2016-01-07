@@ -97,6 +97,7 @@ stop(_State) ->
 %%% Internal functions
 %%%
 -spec db_init() -> list().
+%% 初始化Mnesia
 db_init() ->
     case mnesia:system_info(extra_db_nodes) of
         [] ->

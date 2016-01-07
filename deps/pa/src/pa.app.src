@@ -1,0 +1,14 @@
+{application, pa,
+ [
+  {description, "Partial application for Erlang functions"},
+  {vsn, git},
+  {modules, [
+             pa
+            ]},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {env, []}
+ ]}.

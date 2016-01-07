@@ -1,0 +1,4 @@
+{application, seestar,
+ [{description, "Client library for Apache Cassandra CQL binary protocol"},
+  {vsn, "0.0.1"},
+  {applications, [kernel, stdlib]}]}.

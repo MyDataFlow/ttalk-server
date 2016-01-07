@@ -79,6 +79,7 @@ start(Socket, SockMod, Shaper) ->
     start(Socket, SockMod, Shaper, infinity).
 
 start(Socket, SockMod, Shaper, MaxStanzaSize) ->
+    %% 启动一个ejabberd_receiver
     {ok, Pid} = supervisor:start_child(
                   ejabberd_receiver_sup,
                   [Socket, SockMod, Shaper, MaxStanzaSize]),
@@ -168,8 +169,10 @@ handle_call(reset_stream, _From, #state{ parser = Parser } = State) ->
     NewParser = reset_parser(Parser),
     {reply, ok, State#state{parser = NewParser}, ?HIBERNATE_TIMEOUT};
 handle_call({become_controller, C2SPid}, _From, State) ->
+    %% 重置解析器
     Parser = reset_parser(State#state.parser),
     NewState = State#state{c2s_pid = C2SPid, parser = Parser},
+    %% 激活socket
     activate_socket(NewState),
     Reply = ok,
     {reply, Reply, NewState, ?HIBERNATE_TIMEOUT};
@@ -197,6 +200,7 @@ handle_cast(_Msg, State) ->
 %%                                       {stop, Reason, State}
 %% Description: Handling all non call/cast messages
 %%--------------------------------------------------------------------
+%% 处理数据
 handle_info({Tag, _TCPSocket, Data},
 	    #state{socket = Socket,
 		   c2s_pid = C2SPid,
@@ -276,7 +280,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
-
+%%  使用active_once简单流控
 -spec activate_socket(state()) -> 'ok' | {'tcp_closed',_}.
 activate_socket(#state{socket = Socket,
                        sock_mod = SockMod}) ->

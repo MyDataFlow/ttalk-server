@@ -1,0 +1,8 @@
+- test unavailable/write timeout/reqd timeout errors and accessors
+
+- guards in encode with better error messages
+- document all the things
+- add snappy support (if installed)
+- add events support
+- examples
+- native multi-pooling with app supervisor and app.config?

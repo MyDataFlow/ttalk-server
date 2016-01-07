@@ -1,0 +1,14 @@
+sudo: false
+language: erlang
+script: "make all"
+before_install: dialyzer --build_plt --apps erts kernel stdlib compiler crypto
+otp_release:
+   - 17.4
+   - 17.1
+   - 17.0
+   - R16B03-1
+   - R16B03
+   - R16B02
+   - R16B01
+   - R15B03
+   - R15B02

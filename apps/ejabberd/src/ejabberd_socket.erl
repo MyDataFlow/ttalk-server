@@ -75,6 +75,7 @@ start(Module, SockMod, Socket, Opts) ->
                     {receiver, RecMod, RecPid} ->
                         {RecMod, RecPid, RecMod};
                     _ ->
+                        %% gen_tcp 默认是是用该进程来处理
                         RecPid = ejabberd_receiver:start(
                                    Socket, SockMod, none, MaxStanzaSize),
                         {ejabberd_receiver, RecPid, RecPid}
@@ -82,6 +83,7 @@ start(Module, SockMod, Socket, Opts) ->
             SocketData = #socket_state{sockmod = SockMod,
                                        socket = Socket,
                                        receiver = RecRef},
+             %% 如果是ejabberd_c2s的话，直接用SocketData做参数                     
             case Module:start({?MODULE, SocketData}, Opts) of
                 {ok, Pid} ->
                     case SockMod:controlling_process(Socket, Receiver) of
@@ -90,6 +92,7 @@ start(Module, SockMod, Socket, Opts) ->
                         {error, _Reason} ->
                             SockMod:close(Socket)
                     end,
+                    %% 通知接收进程成为控制进程
                     ReceiverMod:become_controller(Receiver, Pid);
                 {error, _Reason} ->
                     SockMod:close(Socket),
