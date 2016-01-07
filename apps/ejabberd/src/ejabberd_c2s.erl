@@ -947,7 +947,9 @@ session_established2(El, StateData) ->
                     StateData
             end;
         _ ->
+            %% 用户发送包给服务器
             case Name of
+                %% 出席操作
                 <<"presence">> ->
                     PresenceEl = ejabberd_hooks:run_fold(
                                    c2s_update_presence,
@@ -970,6 +972,7 @@ session_established2(El, StateData) ->
                             presence_track(FromJID, ToJID, PresenceEl,
                                            StateData)
                     end;
+                %%  查询操作
                 <<"iq">> ->
                     case jlib:iq_query_info(NewEl) of
                         #iq{xmlns = Xmlns} = IQ
@@ -985,6 +988,7 @@ session_established2(El, StateData) ->
                             check_privacy_route(FromJID, StateData, FromJID, ToJID, NewEl),
                             StateData
                     end;
+                %% 实际的消息
                 <<"message">> ->
                     ejabberd_hooks:run(user_send_packet,
                                        Server,
@@ -1107,19 +1111,23 @@ handle_info({broadcast, Broadcast}, StateName, StateData) ->
     ejabberd_hooks:run(c2s_loop_debug, [{broadcast, Broadcast}]),
     ?DEBUG("broadcast=~p", [Broadcast]),
     handle_broadcast_result(handle_routed_broadcast(Broadcast, StateData), StateName, StateData);
+%% 进行路由    
 handle_info({route, From, To, Packet}, StateName, StateData) ->
     ejabberd_hooks:run(c2s_loop_debug, [{route, From, To, Packet}]),
     case Packet#xmlel.name of
         <<"broadcast">> ->
+            %% broadcast是一个旧的包类型了
             self() ! legacy_packet_to_broadcast(Packet),
             fsm_next_state(StateName, StateData);
         PacketName ->
+            %% 交付给handle_routed进行路由
             case handle_routed(PacketName, From, To, Packet, StateData) of
                 {true, NewAttrs, NewState} ->
                     Attrs2 = jlib:replace_from_to_attrs(jid:to_binary(From),
                                                         jid:to_binary(To),
                                                         NewAttrs),
                     FixedPacket = Packet#xmlel{attrs = Attrs2},
+                    %% 用户进程收到了别的用户发来的包
                     ejabberd_hooks:run(user_receive_packet,
                                        StateData#state.server,
                                        [StateData#state.jid, From, To, FixedPacket]),
@@ -1868,7 +1876,8 @@ presence_track(From, To, Packet, StateData) ->
                             pres_a = A}
     end.
 
-
+%% 检查是否可以直接进行路由
+%% 如果可以路由立刻进行路由
 -spec check_privacy_route(From :: 'undefined' | ejabberd:jid(),
                           StateData :: state(),
                           FromRoute :: ejabberd:jid(),
@@ -1877,12 +1886,15 @@ presence_track(From, To, Packet, StateData) ->
 check_privacy_route(From, StateData, FromRoute, To, Packet) ->
     case privacy_check_packet(StateData, From, To, Packet, out) of
         deny ->
+            %% 发包被禁止了
+            %% 将接收着作为发送者，封装一个错误错误包，返还给原发送者
             Lang = StateData#state.lang,
             ErrText = <<"Your active privacy list has denied the routing of this stanza.">>,
             Err = jlib:make_error_reply(Packet, ?ERRT_NOT_ACCEPTABLE(Lang, ErrText)),
             ejabberd_router:route(To, From, Err),
             ok;
         allow ->
+            %% 像用户进行路由
             ejabberd_router:route(FromRoute, To, Packet)
     end.
 
