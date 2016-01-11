@@ -770,7 +770,9 @@ wait_for_bind_or_resume({xmlstreamelement, El}, StateData) ->
                                                  children = [#xmlel{name = <<"jid">>,
                                                                     children = [#xmlcdata{content = jid:to_binary(JID)}]}]}]},
                     XmlEl = jlib:iq_to_xml(Res),
+                    %% 告诉客户端资源绑定成功
                     send_element(StateData, XmlEl),
+                    %% 直接进入等待session的状态
                     fsm_next_state(wait_for_session_or_sm,
                                    StateData#state{resource = R, jid = JID})
             end;
@@ -795,10 +797,14 @@ wait_for_bind_or_resume(closed, StateData) ->
 
 -spec wait_for_session_or_sm(Item :: ejabberd:xml_stream_item(),
                              State :: state()) -> fsm_return().
+
+%% <enable xmlns='urn:xmpp:sm:3'/>
 wait_for_session_or_sm({xmlstreamelement,
                         #xmlel{name = <<"enable">>} = El}, StateData) ->
     maybe_enable_stream_mgmt(wait_for_session_or_sm, El, StateData);
-
+%% <r xmlns='urn:xmpp:sm:3'/>
+%% <a xmlns='urn:xmpp:sm:3' h='1'/>
+%% XEP-0198: Stream Management http://xmpp.org/extensions/xep-0198.html
 wait_for_session_or_sm({xmlstreamelement,
                         #xmlel{name = <<"r">>} = El}, StateData) ->
     maybe_send_sm_ack(xml:get_tag_attr_s(<<"xmlns">>, El),
@@ -830,7 +836,7 @@ wait_for_session_or_sm({xmlstreamerror, _}, StateData) ->
 
 wait_for_session_or_sm(closed, StateData) ->
     {stop, normal, StateData}.
-
+%% 增加新的session
 maybe_open_session(El, #state{jid = JID} = StateData) ->
     case user_allowed(JID, StateData) of
         true ->
@@ -845,7 +851,7 @@ maybe_open_session(El, #state{jid = JID} = StateData) ->
             send_element(StateData, Err),
             fsm_next_state(wait_for_session_or_sm, StateData)
     end.
-
+%% 开启session
 do_open_session(El, JID, StateData) ->
                     ?INFO_MSG("(~w) Opened session for ~s",
                               [StateData#state.socket,
@@ -874,6 +880,7 @@ do_open_session_common(JID, #state{user = U, resource = R} = NewStateData0) ->
                     Conn = get_conn_type(NewStateData0),
                     Info = [{ip, NewStateData0#state.ip}, {conn, Conn},
                             {auth_module, NewStateData0#state.auth_module}],
+                    %% 为用户增加session
                     ejabberd_sm:open_session(
                       SID, U, NewStateData0#state.server, R, Info),
                     NewStateData =
@@ -2493,7 +2500,7 @@ pack_string(String, Pack) ->
 %%%----------------------------------------------------------------------
 %%% XEP-0198: Stream Management
 %%%----------------------------------------------------------------------
-
+%%% 流管理
 maybe_enable_stream_mgmt(NextState, El, StateData) ->
     case {xml:get_tag_attr_s(<<"xmlns">>, El),
           StateData#state.stream_mgmt,
