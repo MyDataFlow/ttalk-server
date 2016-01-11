@@ -133,7 +133,7 @@ get_bin_path() ->
         Path ->
             Path
     end.
-
+%% 获取PID文件路径
 -spec get_pid_file() -> 'false' | nonempty_string().
 get_pid_file() ->
     case os:getenv("EJABBERD_PID_PATH") of

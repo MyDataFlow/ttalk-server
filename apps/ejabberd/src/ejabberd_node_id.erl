@@ -19,7 +19,7 @@
 -record(node, {name :: atom(),
                id :: nodeid()
               }).
-
+%% 跟新Mneisa中的Node的ID
 start() ->
     mnesia:create_table(node,
             [{ram_copies, [node()]},

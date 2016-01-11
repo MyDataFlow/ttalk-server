@@ -82,6 +82,7 @@ start_module(Host, Module, Opts0) ->
                #ejabberd_module{module_host = {Module, Host},
                                 opts = Opts}),
     try
+        %% 调用Module的start
         Res = Module:start(Host, Opts),
         ?DEBUG("Module ~p started for ~p.", [Module, Host]),
         Res

@@ -41,7 +41,9 @@
 start(normal, _Args) ->
     ejabberd_loglevel:init(),
     ejabberd_loglevel:set(4),
+    %% 在系统上写入一个PID文件
     write_pid_file(),
+    %% 初始化数据库
     db_init(),
     application:start(p1_cache_tab),
 
@@ -109,6 +111,7 @@ db_init() ->
     end,
     mnesia:wait_for_tables(mnesia:system_info(local_tables), infinity).
 
+%% 启动所有的mod，这里面mod就是插件
 %% @doc Start all the modules in all the hosts
 -spec start_modules() -> 'ok'.
 start_modules() ->
@@ -180,6 +183,7 @@ write_pid_file() ->
         false ->
             ok;
         PidFilename ->
+            %% 将PID文件写入
             write_pid_file(os:getpid(), PidFilename)
     end.
 

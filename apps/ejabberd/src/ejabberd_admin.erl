@@ -48,7 +48,7 @@
 
 -include("ejabberd.hrl").
 -include("ejabberd_commands.hrl").
-
+%% 向ejabberd的commands中注册命令
 start() ->
     ejabberd_commands:register_commands(commands()).
 
@@ -68,10 +68,14 @@ commands() ->
                         desc = "Get status of the ejabberd server",
                         module = ?MODULE, function = status,
                         args = [], result = {res, restuple}},
+                        %% 保证heartbeat应用会在Erlang结束前
+                        %% 被结束
      #ejabberd_commands{name = stop, tags = [server],
                         desc = "Stop ejabberd gracefully",
                         module = init, function = stop,
                         args = [], result = {res, rescode}},
+                        %% 让Erlang重启所有的application
+                        %% 但是不是重启Erlang
      #ejabberd_commands{name = restart, tags = [server],
                         desc = "Restart ejabberd gracefully",
                         module = init, function = restart,

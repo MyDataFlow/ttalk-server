@@ -243,7 +243,7 @@
               access_cmd/0,
               list_cmd/0]).
 
-
+%% 创建ejabberd的命令表
 init() ->
     ets:new(ejabberd_commands, [named_table, set, public,
                                 {keypos, #ejabberd_commands.name}]).
