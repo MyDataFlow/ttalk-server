@@ -355,8 +355,9 @@ static ErlDrvSSizeT tls_drv_control(ErlDrvData handle,
    int size;
    ErlDrvBinary *b;
    X509 *cert;
+   // 直接拿最高位
    unsigned int flags = command;
-
+   // 直接位运算，去掉最高位
    command &= 0xffff;
 
    ERR_clear_error();
@@ -365,6 +366,7 @@ static ErlDrvSSizeT tls_drv_control(ErlDrvData handle,
       case SET_CERTIFICATE_FILE_ACCEPT:
       case SET_CERTIFICATE_FILE_CONNECT: {
 	 time_t mtime = 0;
+	 // 找到SSL的上下文
 	 SSL_CTX *ssl_ctx = hash_table_lookup(buf, &mtime);
 	 if (is_key_file_modified(buf, &mtime) || ssl_ctx == NULL)
 	 {
@@ -452,7 +454,7 @@ static ErlDrvSSizeT tls_drv_control(ErlDrvData handle,
 
 	 d->bio_read = BIO_new(BIO_s_mem());
 	 d->bio_write = BIO_new(BIO_s_mem());
-
+	 // 绑定ssl的后端IO
 	 SSL_set_bio(d->ssl, d->bio_read, d->bio_write);
 
 	 if (command == SET_CERTIFICATE_FILE_ACCEPT) {
@@ -468,12 +470,15 @@ static ErlDrvSSizeT tls_drv_control(ErlDrvData handle,
 	 }
 	 break;
       }
+
       case SET_ENCRYPTED_INPUT:
-	 die_unless(d->ssl, "SSL not initialized");
-	 BIO_write(d->bio_read, buf, len);
+	 	die_unless(d->ssl, "SSL not initialized");
+	 	//将数据写到等待读的队列中
+	 	BIO_write(d->bio_read, buf, len);
 	 break;
       case SET_DECRYPTED_OUTPUT:
 	 die_unless(d->ssl, "SSL not initialized");
+	 // 向外写出没有加密的数据
 	 res = SSL_write(d->ssl, buf, len);
 	 if (res <= 0)
 	 {
@@ -508,8 +513,10 @@ static ErlDrvSSizeT tls_drv_control(ErlDrvData handle,
 	 *rbuf = (char *)b;
 	 return rlen;
       case GET_DECRYPTED_INPUT:
+      // 如果没有完成handshark
 	 if (!SSL_is_init_finished(d->ssl))
 	 {
+	 	// 开始进行ssl的握手
 	    res = SSL_do_handshake(d->ssl);
 	    if (res <= 0)
 	       die_unless(SSL_get_error(d->ssl, res) == SSL_ERROR_WANT_READ,
@@ -519,13 +526,14 @@ static ErlDrvSSizeT tls_drv_control(ErlDrvData handle,
 	    rlen = 1;
 	    b = driver_alloc_binary(size);
 	    b->orig_bytes[0] = 0;
-
+	    // 尝试读取
 	    while ((res = SSL_read(d->ssl,
 				   b->orig_bytes + rlen, BUF_SIZE)) > 0)
 	    {
 	       //printf("%d bytes of decrypted data read from state machine\r\n",res);
 	       rlen += res;
 	       size += BUF_SIZE;
+	       // 每次按照1024字节进行扩张内存区域
 	       b = driver_realloc_binary(b, size);
 	    }
 
@@ -542,6 +550,7 @@ static ErlDrvSSizeT tls_drv_control(ErlDrvData handle,
 	    }
 	    b = driver_realloc_binary(b, rlen);
 	    *rbuf = (char *)b;
+	    // 最后一次读区的一定是0
 	    return rlen;
 	 }
 	 break;

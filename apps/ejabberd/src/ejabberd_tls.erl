@@ -64,7 +64,7 @@
                   tlsport  :: port()
                  }).
 -type tlssock() :: #tlssock{}.
-
+%% ejabberd将普通的tcp升级为tls
 -spec tcp_to_tls(port(), [any()]
                 ) -> {ok, tlssock()} | {'error','no_certfile' | string()}.
 tcp_to_tls(TCPSocket, Options) ->
@@ -114,7 +114,13 @@ recv_data(TLSSock, Packet) ->
             Res
     end.
 
-
+%% 此处整个流程是这样的
+%% 1.将普通socket读取到数据，放入tls_driver中
+%% 2.tls_driver将读取的数据，通过BIO_write放入d->bio_read中
+%% 3.接着让tls_driver使用SSL_read来解密d->bio_read的数据
+%% 4.这个时候得到解密过的数据，接着看看能不能对外发送数据
+%% 整个过程为什么这么复杂，因为OpenSSL的socket的select效率问题
+%% 所以浪费内存总线的速度来避免网络IO的性能损失
 -spec recv_data1(TLSSock :: tlssock(), Packet :: iolist()
                 ) -> {'error', atom() | [byte()]} | {'ok',binary()}.
 recv_data1(#tlssock{tcpsock = TCPSocket, tlsport = Port}, Packet) ->

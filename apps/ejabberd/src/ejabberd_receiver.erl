@@ -316,6 +316,7 @@ process_data([Element|Els], #state{c2s_pid = C2SPid} = State)
         C2SPid == undefined ->
             State;
         true ->
+            %% 将消息发送个c2s
             catch gen_fsm:send_event(C2SPid, element_wrapper(Element)),
             process_data(Els, State)
     end;
@@ -326,11 +327,13 @@ process_data(Data, #state{parser = Parser,
                           c2s_pid = C2SPid} = State) ->
     ?DEBUG("Received XML on stream = \"~s\"", [Data]),
     Size = size(Data),
+    %% 更新流量统计
     mongoose_metrics:update([data, xmpp, received, xml_stanza_size], Size),
 
     maybe_run_keep_alive_hook(Size, State),
     case exml_stream:parse(Parser, Data) of
         {ok, NewParser, Elems} ->
+
             {NewShaperState, Pause} = shaper:update(ShaperState, Size),
             ValidElems = replace_too_big_elems_with_stream_error(Elems, MaxSize),
             [gen_fsm:send_event(C2SPid, wrap_if_xmlel(E)) || E <- ValidElems],
@@ -354,7 +357,7 @@ replace_too_big_elems_with_stream_error(Elems,MaxSize) ->
                               false -> Elem
                           end
                   end, Elems).
-
+%% 此处进行了限流
 maybe_pause(_, #state{c2s_pid = undefined}) ->
     ok;
 maybe_pause(Pause, _State) when Pause > 0 ->
@@ -379,7 +382,7 @@ element_wrapper(#xmlel{} = XMLElement) ->
     {xmlstreamelement, XMLElement};
 element_wrapper(Element) ->
     Element.
-
+%% 创建一个新的parser
 reset_parser(undefined) ->
     {ok, NewParser} = exml_stream:new_parser(),
     NewParser;

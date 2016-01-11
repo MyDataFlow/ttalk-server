@@ -99,7 +99,7 @@ free_parser(#parser{event_parser = EventParser}) ->
 %%%===================================================================
 %%% Helpers
 %%%===================================================================
-
+%%% 将expat中C的事件，转化成Erlang的事件，进行处理
 -spec parse_events(list(), list(), list(), boolean()) -> {list(exml_stream:element()), list()}.
 parse_events([], Stack, Acc, _InfiniteStream) ->
     {lists:reverse(Acc), Stack};

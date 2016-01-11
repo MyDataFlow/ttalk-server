@@ -59,6 +59,7 @@ new1({maxrate, MaxRate}) ->
 
 %% @doc Update shaper.
 %% `Delay' is how many milliseconds to wait.
+%% 使用整流技术，限制流量
 -spec update(shaper(), Size :: non_neg_integer()) ->
                                       {shaper(), Delay :: non_neg_integer()}.
 update(none, _Size) ->

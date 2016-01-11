@@ -210,7 +210,7 @@ get_subscribed(FsmRef) ->
 %%----------------------------------------------------------------------
 %% Func: StateName/2
 %%----------------------------------------------------------------------
-
+%% 等待流开始
 -spec wait_for_stream(Item :: ejabberd:xml_stream_item(),
                       StateData :: state()) -> fsm_return().
 wait_for_stream({xmlstreamstart, _Name, _} = StreamStart, StateData) ->
@@ -230,12 +230,26 @@ wait_for_stream({xmlstreamerror, _}, StateData) ->
 wait_for_stream(closed, StateData) ->
     {stop, normal, StateData}.
 
+%%   <?xml version='1.0'?>
+%%   <stream:stream
+%%       from='juliet@im.example.com'
+%%       to='im.example.com'
+%%       version='1.0'
+%%       xml:lang='en'
+%%       xmlns='jabber:client'
+%%       xmlns:stream='http://etherx.jabber.org/streams'>
+
+%% 获取流开始
 handle_stream_start({xmlstreamstart, _Name, Attrs}, #state{} = S0) ->
+    %% 获得目标服务器
     Server = jid:nameprep(xml:get_attr_s(<<"to">>, Attrs)),
+    %% 获得语言
     Lang = get_xml_lang(Attrs),
+    %% 更新当前状态
     S = S0#state{server = Server, lang = Lang},
     case {xml:get_attr_s(<<"xmlns:stream">>, Attrs),
           lists:member(Server, ?MYHOSTS)} of
+          %% 确定流符合规则，并且是指向我们的服务器
         {?NS_STREAM, true} ->
             change_shaper(S, jid:make(<<>>, Server, <<>>)),
             Version = xml:get_attr_s(<<"version">>, Attrs),
@@ -266,6 +280,18 @@ c2s_stream_error(Error, StateData) ->
 %%   receiving entity MUST send a <features/> child element [...]
 %%
 %% (http://xmpp.org/rfcs/rfc6120.html#streams-negotiation-features)
+
+%%   <?xml version='1.0'?>
+%%   <stream:stream
+%%       from='im.example.com'
+%%       id='++TR84Sm6A3hnt3Q065SnAbbk3Y='
+%%       to='juliet@im.example.com'
+%%       version='1.0'
+%%       xml:lang='en'
+%%       xmlns='jabber:client'
+%%       xmlns:stream='http://etherx.jabber.org/streams'>
+%% 返回流商议
+
 stream_start_by_protocol_version(<<"1.0">>, #state{} = S) ->
     stream_start_negotiate_features(S);
 stream_start_by_protocol_version(_Pre_1_0, #state{lang = Lang, server = Server} = S) ->
@@ -281,11 +307,14 @@ stream_start_negotiate_features(#state{} = S) ->
     send_header(S, S#state.server, <<"1.0">>, default_language()),
     case {S#state.authenticated, S#state.resource} of
         {false, _} ->
+            %% 需要认证
             stream_start_features_before_auth(S);
         {_, <<>>} ->
+            %% 需要绑定
             stream_start_features_before_bind(S);
         {_, _} ->
             send_element(S, #xmlel{name = <<"stream:features">>}),
+            %% 创建session
             fsm_next_state(wait_for_session_or_sm, S)
     end.
 
@@ -594,14 +623,24 @@ wait_for_feature_request({xmlstreamelement, El}, StateData) ->
                                  certfile, 1, StateData#state.tls_options)]
                       end,
             Socket = StateData#state.socket,
+            %% 升级socket
             TLSSocket = (StateData#state.sockmod):starttls(
                                                     Socket, TLSOpts,
                                                     exml:to_binary(tls_proceed())),
+            %% 之后要重启流
             fsm_next_state(wait_for_stream,
                            StateData#state{socket = TLSSocket,
                                            streamid = new_id(),
                                            tls_enabled = true
                                           });
+        %%<stream:features>
+        %%<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>
+        %%<compression xmlns='http://jabber.org/features/compress'>
+        %%  <method>zlib</method>
+        %%  <method>lzw</method>
+        %%</compression>
+        %%</stream:features>
+        
         {?NS_COMPRESS_BIN, <<"compress">>} when Zlib == true,
                                                 ((SockMod == gen_tcp) or
                                                  (SockMod == tls)) ->
@@ -615,6 +654,7 @@ wait_for_feature_request({xmlstreamelement, El}, StateData) ->
                             Socket = StateData#state.socket,
                             ZlibSocket = (StateData#state.sockmod):compress(Socket, ZlibLimit,
                                                                             exml:to_binary(compressed())),
+                            %% 压缩流开启后，也需要进行流重启的
                             fsm_next_state(wait_for_stream,
                                            StateData#state{socket = ZlibSocket,
                                                            streamid = new_id()
@@ -1467,7 +1507,7 @@ change_shaper(StateData, JID) ->
                             StateData#state.shaper, JID),
     (StateData#state.sockmod):change_shaper(StateData#state.socket, Shaper).
 
-
+%% 直接交付给socket进行发送
 -spec send_text(state(), Text :: binary()) -> any().
 send_text(StateData, Text) ->
     ?DEBUG("Send XML on stream = ~p", [Text]),
