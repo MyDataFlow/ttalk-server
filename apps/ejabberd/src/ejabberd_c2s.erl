@@ -308,6 +308,7 @@ stream_start_negotiate_features(#state{} = S) ->
     case {S#state.authenticated, S#state.resource} of
         {false, _} ->
             %% 需要认证
+            %% 当SASL认证完成后，我们会看到authenticated是true
             stream_start_features_before_auth(S);
         {_, <<>>} ->
             %% 需要绑定
@@ -1523,7 +1524,9 @@ maybe_send_element_safe(State, El) ->
         ok -> ok;
         _ -> error
     end.
-
+%% 发送数据
+%% 如果是xml类型的socket直接用send_xml方式发送
+%% 否则需要进行转化成文本
 send_element(#state{server = Server, sockmod = SockMod} = StateData, El)
   when StateData#state.xml_socket ->
     ejabberd_hooks:run(xmpp_send_element,
@@ -1580,7 +1583,7 @@ maybe_send_trailer_safe(#state{stream_mgmt = false} = State) ->
     send_trailer(State);
 maybe_send_trailer_safe(StateData) ->
     catch send_trailer(StateData).
-
+%% 发送结尾
 send_trailer(StateData) when StateData#state.xml_socket ->
     (StateData#state.sockmod):send_xml(StateData#state.socket,
                                        {xmlstreamend, <<"stream:stream">>});
