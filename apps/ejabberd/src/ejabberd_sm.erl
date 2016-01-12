@@ -501,6 +501,7 @@ set_session(SID, User, Server, Resource, Priority, Info) ->
                        us = US,
                        priority = Priority,
                        info = Info},
+    %% 要求后端开启session，这个版本开始支持Redis后端了                  
     ?SM_BACKEND:create_session(LUser, LServer, LResource, Session).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -530,6 +531,7 @@ do_route(From, To, {broadcast, _} = Broadcast) ->
                     Pid ! Broadcast
             end
     end;
+%% 开始进行消息路由    
 do_route(From, To, Packet) ->
     ?DEBUG("session manager~n\tfrom ~p~n\tto ~p~n\tpacket ~P~n",
            [From, To, Packet, 8]),

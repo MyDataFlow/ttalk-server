@@ -1245,7 +1245,7 @@ legacy_packet_to_broadcast({xmlel, _, _, [Child]}) ->
 legacy_packet_to_broadcast(InvalidBroadcast) ->
     ?WARNING_MSG("invalid_broadcast=~p", [InvalidBroadcast]),
     {broadcast, unknown}.
-
+%% 路由presence
 handle_routed(<<"presence">>, From, To, Packet, StateData) ->
     handle_routed_presence(From, To, Packet, StateData);
 handle_routed(<<"iq">>, From, To, Packet, StateData) ->
@@ -1259,7 +1259,7 @@ handle_routed(<<"message">>, From, To, Packet, StateData) ->
     end;
 handle_routed(_, _From, _To, Packet, StateData) ->
     {true, Packet#xmlel.attrs, StateData}.
-
+%% 处理IQ协议
 handle_routed_iq(From, To, Packet = #xmlel{attrs = Attrs}, StateData) ->
     case jlib:iq_query_info(Packet) of
         %% TODO: Support for mod_last / XEP-0012. Can we move it to the respective module?
@@ -1599,6 +1599,7 @@ send_trailer(StateData) ->
 
 
 send_and_maybe_buffer_stanza({_, _, Stanza} = Packet, State, StateName)->
+    %% 发送到用户手里
     SendResult = maybe_send_element_safe(State, Stanza),
     BufferedStateData = buffer_out_stanza(Packet, State),
     case SendResult of
