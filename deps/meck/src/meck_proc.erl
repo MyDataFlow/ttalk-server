@@ -47,7 +47,7 @@
 %%% Definitions
 %%%============================================================================
 
--ifdef(namespaced_types).
+-ifdef(namespaced_dicts).
 -type meck_dict() :: dict:dict().
 -else.
 -type meck_dict() :: dict().
@@ -81,7 +81,9 @@
 %%% API
 %%%============================================================================
 
--spec start(Mod::atom(), Options::[proplists:property()]) -> ok | no_return().
+-spec start(Mod::atom(), Options::[proplists:property()]) ->
+        {ok, MockProcPid::pid()} |
+        {error, Reason::any()}.
 start(Mod, Options) ->
     StartFunc = case proplists:is_defined(no_link, Options) of
                     true  -> start;
@@ -198,8 +200,7 @@ init([Mod, Options]) ->
         _    -> false
     end,
     NoPassCover = proplists:get_bool(no_passthrough_cover, Options),
-    EnableOnLoad = proplists:get_bool(enable_on_load, Options),
-    Original = backup_original(Mod, NoPassCover, EnableOnLoad),
+    Original = backup_original(Mod, NoPassCover),
     NoHistory = proplists:get_bool(no_history, Options),
     History = if NoHistory -> undefined; true -> [] end,
     CanExpect = resolve_can_expect(Mod, Exports, Options),
@@ -306,9 +307,9 @@ handle_info(_Info, S) ->
 %% @hidden
 terminate(_Reason, #state{mod = Mod, original = OriginalState,
                           was_sticky = WasSticky}) ->
-    BackupCover = export_original_cover(Mod, OriginalState),
+    export_original_cover(Mod, OriginalState),
     cleanup(Mod),
-    restore_original(Mod, OriginalState, WasSticky, BackupCover),
+    restore_original(Mod, OriginalState, WasSticky),
     ok.
 
 %% @hidden
@@ -337,17 +338,16 @@ expect_type(Mod, Func, Ari) ->
         false -> normal
     end.
 
--spec backup_original(Mod::atom(), NoPassCover::boolean(), EnableOnLoad::boolean()) ->
+-spec backup_original(Mod::atom(), NoPassCover::boolean()) ->
     {Cover:: false |
              {File::string(), Data::string(), CompiledOptions::[any()]},
      Binary:: no_binary |
               no_passthrough_cover |
               binary()}.
-backup_original(Mod, NoPassCover, EnableOnLoad) ->
+backup_original(Mod, NoPassCover) ->
     Cover = get_cover_state(Mod),
     try
-        Forms0 = meck_code:abstract_code(meck_code:beam_file(Mod)),
-        Forms = meck_code:enable_on_load(Forms0, EnableOnLoad),
+        Forms = meck_code:abstract_code(meck_code:beam_file(Mod)),
         NewName = meck_util:original_name(Mod),
         CompileOpts = meck_code:compile_options(meck_code:beam_file(Mod)),
         Renamed = meck_code:rename_module(Forms, NewName),
@@ -391,14 +391,15 @@ backup_original(Mod, NoPassCover, EnableOnLoad) ->
 get_cover_state(Mod) ->
     case cover:is_compiled(Mod) of
         {file, File} ->
-            OriginalCover = meck_cover:dump_coverdata(Mod),
+            Data = atom_to_list(Mod) ++ ".coverdata",
+            ok = cover:export(Data, Mod),
             CompileOptions =
             try
                 meck_code:compile_options(meck_code:beam_file(Mod))
             catch
                 throw:{object_code_not_found, _Module} -> []
             end,
-            {File, OriginalCover, CompileOptions};
+            {File, Data, CompileOptions};
         _ ->
             false
     end.
@@ -510,10 +511,10 @@ compile_expects(Mod, Expects) ->
                           end),
     {Expects, CompilerPid}.
 
-restore_original(Mod, {false, _Bin}, WasSticky, _BackupCover) ->
+restore_original(Mod, {false, _}, WasSticky) ->
     restick_original(Mod, WasSticky),
     ok;
-restore_original(Mod, {{File, OriginalCover, Options}, _Bin}, WasSticky, BackupCover) ->
+restore_original(Mod, OriginalState={{File, Data, Options},_}, WasSticky) ->
     case filename:extension(File) of
         ".erl" ->
             {ok, Mod} = cover:compile_module(File, Options);
@@ -521,26 +522,30 @@ restore_original(Mod, {{File, OriginalCover, Options}, _Bin}, WasSticky, BackupC
             cover:compile_beam(File)
     end,
     restick_original(Mod, WasSticky),
-    if BackupCover =/= undefined ->
-        %% Import the cover data for `<name>_meck_original' but since it was
-        %% modified by `export_original_cover' it will count towards `<name>'.
-        ok = cover:import(BackupCover),
-        ok = file:delete(BackupCover);
-    true -> ok
-    end,
-    ok = cover:import(OriginalCover),
-    ok = file:delete(OriginalCover),
+    import_original_cover(Mod, OriginalState),
+    ok = cover:import(Data),
+    ok = file:delete(Data),
+    ok.
+
+%% @doc Import the cover data for `<name>_meck_original' but since it
+%% was modified by `export_original_cover' it will count towards
+%% `<name>'.
+import_original_cover(Mod, {_,Bin}) when is_binary(Bin) ->
+    OriginalData = atom_to_list(meck_util:original_name(Mod)) ++ ".coverdata",
+    ok = cover:import(OriginalData),
+    ok = file:delete(OriginalData);
+import_original_cover(_, _) ->
     ok.
 
 %% @doc Export the cover data for `<name>_meck_original' and modify
 %% the data so it can be imported under `<name>'.
 export_original_cover(Mod, {_, Bin}) when is_binary(Bin) ->
     OriginalMod = meck_util:original_name(Mod),
-    BackupCover = meck_cover:dump_coverdata(OriginalMod),
-    ok = meck_cover:rename_module(BackupCover, Mod),
-    BackupCover;
+    File = atom_to_list(OriginalMod) ++ ".coverdata",
+    ok = cover:export(File, OriginalMod),
+    ok = meck_cover:rename_module(File, Mod);
 export_original_cover(_, _) ->
-    undefined.
+    ok.
 
 unstick_original(Module) -> unstick_original(Module, code:is_sticky(Module)).
 

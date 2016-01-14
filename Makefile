@@ -10,7 +10,7 @@ DEVNODES = node1 node2
 all: deps compile
 
 compile: rebar
-	./rebar $(OTPS) compile
+	. ./tools/env_setup.sh && ./rebar $(OTPS) compile
 
 deps: rebar
 	./rebar get-deps

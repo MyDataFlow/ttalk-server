@@ -88,3 +88,5 @@ ebin/
 #idea
 .idea/
 *.iml
+deps/setup/setup_gen
+*.so
