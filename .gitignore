@@ -89,4 +89,9 @@ ebin/
 .idea/
 *.iml
 deps/setup/setup_gen
+deps/idna
 *.so
+/log
+/etc
+Mnesia.mongooseim@localhost
+configure.out
