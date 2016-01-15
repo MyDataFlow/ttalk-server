@@ -27,8 +27,7 @@ user_send_packet(From,To,Packet)->
 %%  s:id='gid_ktx72v49'
 %%  xml:lang='en'>
 %%</message>
-send_ack(From, To, Packet = #xmlel{name = <<"message">>,
-	 attrs = Attrs},StoreID) ->
+send_ack(From, To, Packet = #xmlel{attrs = Attrs},StoreID) ->
   Type = xml:get_attr_s(<<"type">>, Attrs),
   ID = xml:get_attr_s(<<"id">>,Attrs),
   case {Type,From#jid.luser} of

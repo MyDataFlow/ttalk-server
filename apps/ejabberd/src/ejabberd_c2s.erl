@@ -968,11 +968,15 @@ session_established2(El, StateData) ->
     To = xml:get_attr_s(<<"to">>, Attrs),
     ToJID = case To of
                 <<>> ->
+                    %% 得不到To某人的时候，将发送者作为目标
+                    %% 其实是可以发送消息给自己的
                     jid:make(User, Server, <<>>);
                 _ ->
                     jid:from_binary(To)
             end,
     NewEl1 = jlib:remove_attr(<<"xmlns">>, jlib:remove_delay_tags(El)),
+    %% 增加默认语言标签，这个好呀
+    %% 这样可以知道对方正在用什么语言
     NewEl = case xml:get_attr_s(<<"xml:lang">>, Attrs) of
                 <<>> ->
                     case StateData#state.lang of
@@ -1038,10 +1042,12 @@ session_established2(El, StateData) ->
                     end;
                 %% 实际的消息
                 <<"message">> ->
+                    %% 我们利用hook的特性，完成存储和ack的发送
+                    %% 此时，我们先存储，然后发送ACK
                     ejabberd_hooks:run(user_send_packet,
                                        Server,
                                        [FromJID, ToJID, NewEl]),
-                    
+                    %% 此刻真正才开始向对方发送消息
                     check_privacy_route(FromJID, StateData, FromJID,
                                         ToJID, NewEl),
                     StateData;
