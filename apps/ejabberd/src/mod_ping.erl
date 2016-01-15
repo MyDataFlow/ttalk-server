@@ -155,6 +155,8 @@ handle_cast({start_ping, JID}, State) ->
 handle_cast({stop_ping, JID}, State) ->
     Timers = del_timer(JID, State#state.timers),
     {noreply, State#state{timers = Timers}};
+%% 收到心跳的timeout
+%% 开始杀掉当前的session    
 handle_cast({iq_pong, JID, timeout}, State) ->
     Timers = del_timer(JID, State#state.timers),
     ejabberd_hooks:run(user_ping_timeout, State#state.host, [JID]),
@@ -171,9 +173,11 @@ handle_cast({iq_pong, JID, timeout}, State) ->
             ok
     end,
     {noreply, State#state{timers = Timers}};
+%% 如果没超时，发过来的信息是不同的
+%% 我们可以直接忽略    
 handle_cast(_Msg, State) ->
     {noreply, State}.
-
+%% 主动向客户端发送一个ping消息
 handle_info({timeout, _TRef, {ping, JID}},
             #state{ping_req_timeout = PingReqTimeout} = State) ->
     IQ = #iq{type = get,
@@ -219,6 +223,8 @@ user_keep_alive(JID) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
+%% 添加一个timer
+%% 添加前，先检查是否存在
 add_timer(JID, Interval, Timers) ->
     LJID = jid:to_lower(JID),
     NewTimers = case ?DICT:find(LJID, Timers) of

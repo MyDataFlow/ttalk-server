@@ -166,6 +166,7 @@ handle_call({add, Hook, Host, Module, Function, Seq}, _From, State) ->
                         true ->
                             ok;
                         false ->
+                            %% 生序排列，Seq越大越靠后
                             NewLs = lists:merge(Ls, [El]),
                             ets:insert(hooks, {{Hook, Host}, NewLs}),
                             ok
@@ -230,6 +231,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%% 从这里面我们可以看出，该进程只负责存储，而不负责执行
 %%% 执行者还是相应的进程，使用safely:apply
 %%% 完全是为了防止崩溃
+%%% 按照Seq从小到大的次序执行
 run1([], _Hook, _Args) ->
     ok;
 run1([{_Seq, Module, Function} | Ls], Hook, Args) ->

@@ -1041,6 +1041,7 @@ session_established2(El, StateData) ->
                     ejabberd_hooks:run(user_send_packet,
                                        Server,
                                        [FromJID, ToJID, NewEl]),
+                    
                     check_privacy_route(FromJID, StateData, FromJID,
                                         ToJID, NewEl),
                     StateData;

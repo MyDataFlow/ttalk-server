@@ -86,7 +86,7 @@
 -spec start_link() -> 'ignore' | {'error',_} | {'ok',pid()}.
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
-
+%% 处理IQ响应，其中就包括Ping
 -spec process_iq(From :: ejabberd:jid(),
                  To :: ejabberd:jid(),
                  Packet :: jlib:xmlel()
@@ -163,6 +163,7 @@ route_iq(From, To, #iq{type = Type} = IQ, F, Timeout) when is_function(F) ->
     Packet = if Type == set; Type == get ->
                      ID = list_to_binary(randoms:get_string()),
                      Host = From#jid.lserver,
+                     %% 注册一个IQ响应handler
                      register_iq_response_handler(Host, ID, undefined, F, Timeout),
                      jlib:iq_to_xml(IQ#iq{id = ID});
                 true ->
@@ -185,6 +186,7 @@ register_iq_response_handler(_Host, ID, Module, Function, Timeout0) ->
                   N when is_integer(N), N > 0 ->
                       N
               end,
+    %% 定时器，并纪录IQ的响应号
     TRef = erlang:start_timer(Timeout, ejabberd_local, ID),
     mnesia:dirty_write(#iq_response{id = ID,
                                     module = Module,
@@ -431,7 +433,7 @@ get_iq_callback(ID) ->
         _ ->
             error
     end.
-
+%% 处理IQ响应超时
 -spec process_iq_timeout(id()) -> id().
 process_iq_timeout(ID) ->
     spawn(fun process_iq_timeout/0) ! ID.
