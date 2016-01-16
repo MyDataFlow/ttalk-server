@@ -384,6 +384,7 @@ node_cleanup(Node) ->
 -spec init(_) -> {ok, state()}.
 init([]) ->
     {Backend, Opts} = ejabberd_config:get_global_option(sm_backend),
+    %% 动态生成ejabberd_sm_backend的代码
     {Mod, Code} = dynamic_compile:from_string(sm_backend(Backend)),
     code:load_binary(Mod, "ejabberd_sm_backend.erl", Code),
 
@@ -916,7 +917,7 @@ commands() ->
 user_resources(UserStr, ServerStr) ->
     Resources = get_user_resources(list_to_binary(UserStr), list_to_binary(ServerStr)),
     lists:sort(Resources).
-
+%% sm_backend的代码
 -spec sm_backend(backend()) -> string().
 sm_backend(Backend) ->
     lists:flatten(
