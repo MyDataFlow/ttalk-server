@@ -3,8 +3,11 @@
 
 -include("ejabberd.hrl").
 -include("jlib.hrl").
+-include("ttalk.hrl").
 
 -export([start/2, stop/1]).
+-export([user_send_packet/3]).
+
 start(Host, Opts) ->
     ejabberd_hooks:add(user_send_packet, Host,
 		       ?MODULE, user_send_packet, 99),
@@ -16,6 +19,7 @@ stop(Host) ->
     ok.
 
 user_send_packet(From,To,Packet)->
+  send_ack(From,To,Packet,1),
 	ok.
 
 %%<message 
@@ -27,7 +31,7 @@ user_send_packet(From,To,Packet)->
 %%  s:id='gid_ktx72v49'
 %%  xml:lang='en'>
 %%</message>
-send_ack(From, To, Packet = #xmlel{attrs = Attrs},StoreID) ->
+send_ack(From, To, Packet = #xmlel{name = <<"message">>,attrs = Attrs},StoreID) ->
   Type = xml:get_attr_s(<<"type">>, Attrs),
   ID = xml:get_attr_s(<<"id">>,Attrs),
   case {Type,From#jid.luser} of
@@ -39,15 +43,17 @@ send_ack(From, To, Packet = #xmlel{attrs = Attrs},StoreID) ->
   	     lserver = From#jid.lserver, lresource = <<"">>},
   	    Timestamp = ttalk_time:millisecond(),
   		Ack = #xmlel{name = <<"message">>,
-            attrs = [
-            	{<<"from">>, jlib:jid_to_string(Server)},
+            attrs = [{<<"xmlns:ttalk">>, ?NS_TTALK_MESSAGE_ACK},
+            	{<<"from">>, jlib:jid_to_binary(Server)},
             	{<<"id">>,ID},
-           		{<<"to">>, jlib:jid_to_string(From)},
-              	{<<"type">>, <<"ack">>},
-              	{<<"s:timestamp">>,erlang:integer_to_binary(Timestamp)},
-              	{<<"s:id">>,StoreID}
+           		{<<"to">>, jlib:jid_to_binary(From)},
+              {<<"type">>, <<"ack">>},
+              {<<"ttalk:s_timestamp">>,erlang:integer_to_binary(Timestamp)},
+              {<<"ttalk:s_id">>,erlang:integer_to_binary(StoreID)}
            	]},
         ejabberd_router:route(Server,From,Ack)
-    end.
+    end;
+send_ack(_From,_To,_Packet,_StoreID)->
+  ok.
 
 

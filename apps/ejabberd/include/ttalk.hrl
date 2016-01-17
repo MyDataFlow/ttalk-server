@@ -1,0 +1,1 @@
+-define(NS_TTALK_MESSAGE_ACK, <<"ttalk:message:ack">>).
