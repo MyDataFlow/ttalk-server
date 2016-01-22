@@ -19,6 +19,7 @@ Major steps performed:
     to use Erlang's binary data type for string manipulation and storage
     instead of operating on linked lists of characters,
 *   advanced offline messages storage
+*   advanced message ack
 *   advanced group support
 *   web managent 
 
@@ -132,3 +133,14 @@ full		include all above deps
 
 
 
+TTalk
+============
+TTalk 是一款基于MongooseIM的服务器。重点在企业级应用支持上，如果高可用，可扩展等。
+
+主要不同
+----------------------------------------
+
+*   更好的离线存储机制
+*   更好的消息确认机制
+*   更好的组支持
+*   web管理
