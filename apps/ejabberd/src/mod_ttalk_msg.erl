@@ -27,8 +27,8 @@ user_send_packet(From,To,Packet)->
 %%  id='ktx72v49'
 %%  to='juliet@example.com'
 %%  type='ack'
-%%  s:timestamp='20160112160432267'
-%%  s:id='gid_ktx72v49'
+%%  ttalk:timestamp='20160112160432267'
+%%  ttalk:id='gid_ktx72v49'
 %%  xml:lang='en'>
 %%</message>
 send_ack(From, To, Packet = #xmlel{name = <<"message">>,attrs = Attrs},StoreID) ->
