@@ -23,6 +23,7 @@ user_send_packet(From,To,Packet)->
 	ok.
 
 %%<message 
+%%  xmlns:ttalk='ttalk:message:ack'
 %%  from='example.com'
 %%  id='ktx72v49'
 %%  to='juliet@example.com'
