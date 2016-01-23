@@ -364,7 +364,8 @@ maybe_pause(Pause, _State) when Pause > 0 ->
     erlang:start_timer(Pause, self(), activate);
 maybe_pause(_, State) ->
     activate_socket(State).
-
+%% 可能需要执行心跳
+%% 慢链路的状态
 maybe_run_keep_alive_hook(Size, #state{c2s_pid = C2SPid})
   when Size < 3, is_pid(C2SPid) ->
     %% yes it can happen that the data is shorter than 3 bytes and contain some part of xml

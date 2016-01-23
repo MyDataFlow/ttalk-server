@@ -120,8 +120,12 @@ init([Host, Opts]) ->
                 timers = ?DICT:new()}}.
 
 maybe_add_hooks_handlers(Host, true) ->
+    %% 当ejabberd_c2s使用ejabberd_sm:open_session的时候
+    %% 会调用这个hook
     ejabberd_hooks:add(sm_register_connection_hook, Host,
                        ?MODULE, user_online, 100),
+    %% 当ejabberd_c2s使用ejabberd_sm:close_session的时候
+    %% 会调用这个hook
     ejabberd_hooks:add(sm_remove_connection_hook, Host,
                        ?MODULE, user_offline, 100),
     ejabberd_hooks:add(user_send_packet, Host,
@@ -207,16 +211,17 @@ iq_ping(_From, _To, #iq{type = Type, sub_el = SubEl} = IQ) ->
         _ ->
             IQ#iq{type = error, sub_el = [SubEl, ?ERR_FEATURE_NOT_IMPLEMENTED]}
     end.
-
+%% 用户上线的hook
 user_online(_SID, JID, _Info) ->
     start_ping(JID#jid.lserver, JID).
 
 user_offline(_SID, JID, _Info, _Reason) ->
     stop_ping(JID#jid.lserver, JID).
-
+%% 每次用户发送数据的时候
+%% 我们就需要重新启动timer，这个设计并不好呀
 user_send(JID, _From, _Packet) ->
     start_ping(JID#jid.lserver, JID).
-
+%% 用户保持在线的hook
 user_keep_alive(JID) ->
     start_ping(JID#jid.lserver, JID).
 

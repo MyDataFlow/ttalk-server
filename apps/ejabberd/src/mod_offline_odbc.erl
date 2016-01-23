@@ -153,7 +153,7 @@ remove_old_messages(LServer, Days) ->
         {updated, Count} ->
             {ok, Count}
     end.
-
+%% 计算离线消息的数量
 count_offline_messages(LServer, SUser, SServer, Limit) ->
     case odbc_queries:count_offline_messages(LServer, SUser, SServer, Limit) of
         {selected, [_], [{Count}]} ->
