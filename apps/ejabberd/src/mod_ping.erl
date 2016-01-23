@@ -105,6 +105,7 @@ init([Host, Opts]) ->
     TimeoutAction = gen_mod:get_opt(timeout_action, Opts, none),
     IQDisc = gen_mod:get_opt(iqdisc, Opts, no_queue),
     mod_disco:register_feature(Host, ?NS_PING),
+    %% 注册Client到Server的ping处理
     gen_iq_handler:add_iq_handler(ejabberd_sm, Host, ?NS_PING,
                                   ?MODULE, iq_ping, IQDisc),
     gen_iq_handler:add_iq_handler(ejabberd_local, Host, ?NS_PING,
@@ -204,6 +205,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%====================================================================
 %% Hook callbacks
 %%====================================================================
+%% 处理client到server的ping
 iq_ping(_From, _To, #iq{type = Type, sub_el = SubEl} = IQ) ->
     case {Type, SubEl} of
         {get, #xmlel{name = <<"ping">>}} ->

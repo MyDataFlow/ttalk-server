@@ -854,6 +854,8 @@ process_iq(From, To, Packet) ->
         #iq{xmlns = XMLNS} ->
             Host = To#jid.lserver,
             case ets:lookup(sm_iqtable, {XMLNS, Host}) of
+                %% 先尝试在sm_iqtable中找到模块家函数的
+                %% 然后直接处理
                 [{_, Module, Function}] ->
                     ResIQ = Module:Function(From, To, IQ),
                     if
@@ -863,6 +865,7 @@ process_iq(From, To, Packet) ->
                         true ->
                             ok
                     end;
+                %% 如果有附加选项，需要交给gen_iq_handler
                 [{_, Module, Function, Opts}] ->
                     gen_iq_handler:handle(Host, Module, Function, Opts,
                                           From, To, IQ);
