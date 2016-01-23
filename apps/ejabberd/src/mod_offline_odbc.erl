@@ -41,7 +41,7 @@
 
 init(_Host, _Opts) ->
     ok.
-
+%% 从此处看，我们可以看出，Ejabberd并没有永久性保存消息
 pop_messages(LUser, LServer) ->
     US = {LUser, LServer},
     To = jid:make(LUser, LServer, <<>>),

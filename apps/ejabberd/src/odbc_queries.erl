@@ -776,14 +776,14 @@ pop_offline_messages(LServer, SUser, SServer, STimeStamp) ->
           Res
         end,
     ejabberd_odbc:sql_transaction(LServer, F).
-
+%% 选出所有没有超时的离线消息，expire必须大于now
 select_offline_messages_sql(SUser, SServer, STimeStamp) ->
     [<<"select timestamp, from_jid, packet from offline_message "
             "where server = '">>, SServer, <<"' and "
                   "username = '">>, SUser, <<"' and "
                   "(expire is null or expire > ">>, STimeStamp, <<") "
              "ORDER BY timestamp">>].
-
+%% 然后将这些消息删除掉
 delete_offline_messages_sql(SUser, SServer) ->
     [<<"delete from offline_message "
             "where server = '">>, SServer, <<"' and "
