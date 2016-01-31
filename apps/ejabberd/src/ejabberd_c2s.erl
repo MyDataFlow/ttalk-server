@@ -764,7 +764,7 @@ do_open_session_common(JID, #state{user = U, resource = R} = NewStateData0) ->
                       privacy_list = PrivList},
                     fsm_next_state_pack(session_established,
                         NewStateData).
-
+%% 此处进入session_established,服务器和客户端开始进行互相通信
 -spec session_established(Item :: ejabberd:xml_stream_item(),
                           State :: state()) -> fsm_return().
 session_established({xmlstreamelement,
