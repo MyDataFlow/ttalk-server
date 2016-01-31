@@ -680,7 +680,8 @@ wait_for_session_or_sm({xmlstreamelement,
                       StateData#state.stream_mgmt,
                       StateData#state.stream_mgmt_in,
                       wait_for_session_or_sm, StateData);
-
+%% 收到开启session请求
+%% 打开session
 wait_for_session_or_sm({xmlstreamelement, El}, StateData0) ->
     StateData = maybe_increment_sm_incoming(StateData0#state.stream_mgmt,
                                             StateData0),
@@ -707,6 +708,7 @@ wait_for_session_or_sm(closed, StateData) ->
     {stop, normal, StateData}.
 %% 增加新的session
 maybe_open_session(El, #state{jid = JID} = StateData) ->
+    %% 验证用户是否是黑名单
     case user_allowed(JID, StateData) of
         true ->
             do_open_session(El, JID, StateData);
@@ -2813,7 +2815,7 @@ handle_sasl_step(#state{server = Server, socket= Sock} = State, StepRes) ->
             send_element(State, sasl_failure_stanza(Error)),
             {wait_for_feature_request, State}
     end.
-
+%% 这个地方需要去掉，ACL规则是不必要的
 user_allowed(JID, #state{server = Server, access = Access}) ->
     case acl:match_rule(Server, Access, JID)  of
         allow ->

@@ -161,7 +161,7 @@ nameprep(S) when is_binary(S), size(S) < ?SANE_LIMIT ->
 nameprep(_) ->
     error.
 
-
+%% 验证资源
 -spec resourceprep(ejabberd:resource()) ->
     'error' | ejabberd:lresource().
 resourceprep(S) when size(S) < ?SANE_LIMIT ->
