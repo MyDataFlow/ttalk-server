@@ -147,6 +147,7 @@ open_session(SID, User, Server, Resource, Priority, Info) ->
     set_session(SID, User, Server, Resource, Priority, Info),
     check_for_sessions_to_replace(User, Server, Resource),
     JID = jid:make(User, Server, Resource),
+    %% 当用户开启session的时候，我们会执行sm_register_connection_hook
     ejabberd_hooks:run(sm_register_connection_hook, JID#jid.lserver,
                        [SID, JID, Info]).
 
@@ -387,7 +388,8 @@ init([]) ->
     %% 动态生成ejabberd_sm_backend的代码
     {Mod, Code} = dynamic_compile:from_string(sm_backend(Backend)),
     code:load_binary(Mod, "ejabberd_sm_backend.erl", Code),
-
+    %% 创建IQ管理器，用来保存IQ的响应情况，也就是说
+    %% 需要改掉Ping的方式
     ets:new(sm_iqtable, [named_table]),
     ejabberd_hooks:add(node_cleanup, global, ?MODULE, node_cleanup, 50),
     lists:foreach(
@@ -852,6 +854,8 @@ process_iq(From, To, Packet) ->
         #iq{xmlns = XMLNS} ->
             Host = To#jid.lserver,
             case ets:lookup(sm_iqtable, {XMLNS, Host}) of
+                %% 先尝试在sm_iqtable中找到模块家函数的
+                %% 然后直接处理
                 [{_, Module, Function}] ->
                     ResIQ = Module:Function(From, To, IQ),
                     if
@@ -861,6 +865,7 @@ process_iq(From, To, Packet) ->
                         true ->
                             ok
                     end;
+                %% 如果有附加选项，需要交给gen_iq_handler
                 [{_, Module, Function, Opts}] ->
                     gen_iq_handler:handle(Host, Module, Function, Opts,
                                           From, To, IQ);

@@ -105,6 +105,7 @@ init([Host, Opts]) ->
     TimeoutAction = gen_mod:get_opt(timeout_action, Opts, none),
     IQDisc = gen_mod:get_opt(iqdisc, Opts, no_queue),
     mod_disco:register_feature(Host, ?NS_PING),
+    %% 注册Client到Server的ping处理
     gen_iq_handler:add_iq_handler(ejabberd_sm, Host, ?NS_PING,
                                   ?MODULE, iq_ping, IQDisc),
     gen_iq_handler:add_iq_handler(ejabberd_local, Host, ?NS_PING,
@@ -120,8 +121,12 @@ init([Host, Opts]) ->
                 timers = ?DICT:new()}}.
 
 maybe_add_hooks_handlers(Host, true) ->
+    %% 当ejabberd_c2s使用ejabberd_sm:open_session的时候
+    %% 会调用这个hook
     ejabberd_hooks:add(sm_register_connection_hook, Host,
                        ?MODULE, user_online, 100),
+    %% 当ejabberd_c2s使用ejabberd_sm:close_session的时候
+    %% 会调用这个hook
     ejabberd_hooks:add(sm_remove_connection_hook, Host,
                        ?MODULE, user_offline, 100),
     ejabberd_hooks:add(user_send_packet, Host,
@@ -200,6 +205,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%====================================================================
 %% Hook callbacks
 %%====================================================================
+%% 处理client到server的ping
 iq_ping(_From, _To, #iq{type = Type, sub_el = SubEl} = IQ) ->
     case {Type, SubEl} of
         {get, #xmlel{name = <<"ping">>}} ->
@@ -207,16 +213,17 @@ iq_ping(_From, _To, #iq{type = Type, sub_el = SubEl} = IQ) ->
         _ ->
             IQ#iq{type = error, sub_el = [SubEl, ?ERR_FEATURE_NOT_IMPLEMENTED]}
     end.
-
+%% 用户上线的hook
 user_online(_SID, JID, _Info) ->
     start_ping(JID#jid.lserver, JID).
 
 user_offline(_SID, JID, _Info, _Reason) ->
     stop_ping(JID#jid.lserver, JID).
-
+%% 每次用户发送数据的时候
+%% 我们就需要重新启动timer，这个设计并不好呀
 user_send(JID, _From, _Packet) ->
     start_ping(JID#jid.lserver, JID).
-
+%% 用户保持在线的hook
 user_keep_alive(JID) ->
     start_ping(JID#jid.lserver, JID).
 

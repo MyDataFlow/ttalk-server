@@ -411,7 +411,8 @@ starttls(TLSRequired)
 
 can_use_tls(SockMod, TLS, TLSEnabled) ->
     TLS == true andalso (TLSEnabled == false) andalso SockMod == gen_tcp.
-
+%% 当开启ejabberd_tls的时候是不能使用zlib的
+%% 何等的悲哀呀
 can_use_zlib_compression(Zlib, SockMod) ->
     Zlib andalso ( (SockMod == gen_tcp) orelse
                    (SockMod == tls) ).
@@ -611,6 +612,7 @@ wait_for_feature_request({xmlstreamelement, El}, StateData) ->
             StepResult = cyrsasl:server_start(StateData#state.sasl_state, Mech, ClientIn),
             {NewFSMState, NewStateData} = handle_sasl_step(StateData, StepResult),
             fsm_next_state(NewFSMState, NewStateData);
+        %% 收到startttls的请求    
         {?NS_TLS_BIN, <<"starttls">>} when TLS == true,
                                            TLSEnabled == false,
                                            SockMod == gen_tcp ->

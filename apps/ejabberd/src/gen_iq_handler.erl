@@ -63,14 +63,17 @@
 start_link(Host, Module, Function) ->
     gen_server:start_link(?MODULE, [Host, Module, Function], []).
 
-
+%% 添加iq_handler的处理函数
 -spec add_iq_handler(component(), Host :: ejabberd:server(), NS :: ns(),
     Module :: atom(), Function :: atom(), Type :: type()) -> any().
 add_iq_handler(Component, Host, NS, Module, Function, Type) ->
     case Type of
         no_queue ->
+            %% 如果没有队列，直接向目标模块注册自己
             Component:register_iq_handler(Host, NS, Module, Function, no_queue);
         one_queue ->
+            %% 如果是单队列，那么传入的函数是启动函数
+            %% 需要在ejabberd_iq_sup下面启动一个进程来处理
             {ok, Pid} = supervisor:start_child(ejabberd_iq_sup,
                                                [Host, Module, Function]),
             Component:register_iq_handler(Host, NS, Module, Function,
@@ -122,6 +125,7 @@ handle(Host, Module, Function, Opts, From, To, IQ) ->
         no_queue ->
             process_iq(Host, Module, Function, From, To, IQ);
         {one_queue, Pid} ->
+            %% 想目标队列放松数据
             Pid ! {process_iq, From, To, IQ};
         {queues, Pids} ->
             Pid = lists:nth(erlang:phash(now(), length(Pids)), Pids),

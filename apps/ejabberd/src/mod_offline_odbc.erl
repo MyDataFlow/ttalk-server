@@ -41,7 +41,7 @@
 
 init(_Host, _Opts) ->
     ok.
-
+%% 从此处看，我们可以看出，Ejabberd并没有永久性保存消息
 pop_messages(LUser, LServer) ->
     US = {LUser, LServer},
     To = jid:make(LUser, LServer, <<>>),
@@ -153,7 +153,7 @@ remove_old_messages(LServer, Days) ->
         {updated, Count} ->
             {ok, Count}
     end.
-
+%% 计算离线消息的数量
 count_offline_messages(LServer, SUser, SServer, Limit) ->
     case odbc_queries:count_offline_messages(LServer, SUser, SServer, Limit) of
         {selected, [_], [{Count}]} ->

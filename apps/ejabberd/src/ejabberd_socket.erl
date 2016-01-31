@@ -170,6 +170,9 @@ starttls(SocketData, TLSOpts) ->
 starttls(SocketData, TLSOpts, Data) ->
     {ok, TLSSocket} = ejabberd_tls:tcp_to_tls(SocketData#socket_state.socket, TLSOpts),
     ejabberd_receiver:starttls(SocketData#socket_state.receiver, TLSSocket),
+    %% 需要注意，这个send，并没有tls
+    %% 而是普通的socket，就是告诉客户端，服务端已经准备好了
+    %% 客户端可以开始使用tls／ssl来连接我了
     send(SocketData, Data),
     SocketData#socket_state{socket = TLSSocket, sockmod = ejabberd_tls}.
 
