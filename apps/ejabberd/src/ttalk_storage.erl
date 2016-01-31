@@ -1,5 +1,5 @@
 -module(ttalk_storage).
--type backend() :: ttalk_storage_riak | ttalk_storage_redis.
+-type backend() :: ttalk_storage_riak | ttalk_storage_pg.
 
 -spec storage_backend(backend()) -> string().
 storage_backend(Backend) ->

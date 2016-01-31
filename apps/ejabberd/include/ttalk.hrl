@@ -1,1 +1,2 @@
--define(NS_TTALK_MESSAGE_ACK, <<"ttalk:message:ack">>).
+-define(NS_TTALK_SERVER, <<"ttalk:server">>).
+-define(NS_TTALK_CLIENT, <<"ttalk:client">>).

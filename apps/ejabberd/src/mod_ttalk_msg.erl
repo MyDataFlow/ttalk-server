@@ -23,13 +23,13 @@ user_send_packet(From,To,Packet)->
 	ok.
 
 %%<message 
-%%  xmlns:ttalk='ttalk:message:ack'
+%%  xmlns:s='ttalk:server'
 %%  from='example.com'
 %%  id='ktx72v49'
 %%  to='juliet@example.com'
 %%  type='ack'
-%%  ttalk:timestamp='20160112160432267'
-%%  ttalk:id='gid_ktx72v49'
+%%  s:timestamp='20160112160432267'
+%%  s:id='gid_ktx72v49'
 %%  xml:lang='en'>
 %%</message>
 send_ack(From, To, Packet = #xmlel{name = <<"message">>,attrs = Attrs},StoreID) ->
@@ -44,13 +44,13 @@ send_ack(From, To, Packet = #xmlel{name = <<"message">>,attrs = Attrs},StoreID) 
   	     lserver = From#jid.lserver, lresource = <<"">>},
   	    Timestamp = ttalk_time:millisecond(),
   		Ack = #xmlel{name = <<"message">>,
-            attrs = [{<<"xmlns:ttalk">>, ?NS_TTALK_MESSAGE_ACK},
+            attrs = [{<<"xmlns:s">>, ?NS_TTALK_SERVER},
             	{<<"from">>, jlib:jid_to_binary(Server)},
             	{<<"id">>,ID},
            		{<<"to">>, jlib:jid_to_binary(From)},
               {<<"type">>, <<"ack">>},
-              {<<"ttalk:s_timestamp">>,erlang:integer_to_binary(Timestamp)},
-              {<<"ttalk:s_id">>,erlang:integer_to_binary(StoreID)}
+              {<<"s:timestamp">>,erlang:integer_to_binary(Timestamp)},
+              {<<"s:id">>,erlang:integer_to_binary(StoreID)}
            	]},
         ejabberd_router:route(Server,From,Ack)
     end;
