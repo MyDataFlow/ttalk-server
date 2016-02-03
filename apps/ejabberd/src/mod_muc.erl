@@ -293,6 +293,7 @@ init([Host, Opts]) ->
     F = fun(From, To, Packet) ->
             mod_muc:route({From, To, Packet}, State)
         end,
+    %% 向router注册群组聊天的路有        
     ejabberd_router:register_route(MyHost, {apply_fun, F}),
 
     load_permanent_rooms(MyHost, Host,

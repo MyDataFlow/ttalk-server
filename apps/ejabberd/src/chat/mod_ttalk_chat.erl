@@ -1,4 +1,4 @@
--module(mod_ttalk_msg).
+-module(mod_ttalk_chat).
 -behaviour(gen_mod).
 
 %% 该模块用来对消息进行ack操作和存储操作
@@ -23,7 +23,7 @@ stop(Host) ->
     ok.
 
 user_send_packet(From,To,Packet)->
-  send_ack(From,To,Packet,1),
+  send_ack(From,Packet,1),
 	ok.
 
 %%<message 
@@ -36,33 +36,17 @@ user_send_packet(From,To,Packet)->
 %%  s:id='gid_ktx72v49'
 %%  xml:lang='en'>
 %%</message>
-send_ack(From, To, Packet = #xmlel{name = <<"message">>,attrs = Attrs},StoreID) ->
+send_ack(From, Packet = #xmlel{name = <<"message">>,attrs = Attrs},StoreID) ->
   Type = xml:get_attr_s(<<"type">>, Attrs),
   ID = xml:get_attr_s(<<"id">>,Attrs),
-  Server = #jid{user = <<"">>, server = From#jid.lserver,
-  resource = <<"">>, luser = <<"">>, lserver = From#jid.lserver, lresource = <<"">>},
-  Timestamp = ttalk_time:millisecond(),
-  Ack = #xmlel{
-          name = <<"message">>,
-          attrs = [
-              {<<"xmlns:s">>, ?NS_TTALK_SERVER},
-              {<<"from">>, jlib:jid_to_binary(Server)},
-              {<<"id">>,ID},
-              {<<"to">>, jlib:jid_to_binary(From)},
-              {<<"type">>, <<"ack">>},
-              {<<"s:timestamp">>,erlang:integer_to_binary(Timestamp)},
-              {<<"s:id">>,erlang:integer_to_binary(StoreID)}
-            ]},
 
   case {Type,From#jid.luser} of
   	{<<"chat">>, _} ->
-      ejabberd_router:route(Server,From,Ack);
-    {<<"groupchat">>,_} ->
-      ejabberd_router:route(Server,From,Ack);
+      ttalk_ack:send_ack(From,ID,StoreID)
     {_Type , _User }->
       ok;
-    end;
-send_ack(_From,_To,_Packet,_StoreID)->
+  end;
+send_ack(_From,_Packet,_StoreID)->
   ok.
 
 
