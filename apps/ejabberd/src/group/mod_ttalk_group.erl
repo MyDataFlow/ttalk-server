@@ -19,4 +19,27 @@ stop(Host) ->
     ok.
 
 user_send_packet(From,To,Packet)->
+	send_ack(From,Packet,1),
+  ok.
+%%<message 
+%%  xmlns:s='ttalk:server'
+%%  from='example.com'
+%%  id='ktx72v49'
+%%  to='juliet@example.com'
+%%  type='ack'
+%%  s:timestamp='20160112160432267'
+%%  s:id='gid_ktx72v49'
+%%  xml:lang='en'>
+%%</message>
+send_ack(From, Packet = #xmlel{name = <<"message">>,attrs = Attrs},StoreID) ->
+  Type = xml:get_attr_s(<<"type">>, Attrs),
+  ID = xml:get_attr_s(<<"id">>,Attrs),
+
+  case {Type,From#jid.luser} of
+  	{<<"groupchat">>, _} ->
+      ttalk_ack:send_ack(From,ID,StoreID)
+    {_Type , _User }->
+      ok;
+  end;
+send_ack(_From,_Packet,_StoreID)->
   ok.
