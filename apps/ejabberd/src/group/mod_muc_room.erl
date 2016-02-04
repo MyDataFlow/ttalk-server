@@ -287,6 +287,7 @@ locked_error({route, From, ToNick, #xmlel{attrs = Attrs} = Packet},
                           From, Err),
     {next_state, NextState, StateData}.
 
+%% 初始化room的状态
 %% @doc  Receive the room-creating Stanza. Will crash if any other stanza is
 %% received in this state.
 -spec initial_state({'route', From :: ejabberd:jid(), To :: mod_muc:nick(),
@@ -830,7 +831,7 @@ get_participant_data(From, StateData) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Presence processing
-
+%% 处理出席
 %% @doc Process presence stanza and destroy the room, if it is empty.
 -spec process_presence(From :: ejabberd:jid(), Nick :: mod_muc:nick(),
                        Packet :: jlib:xmlel(), state()) -> fsm_return().
