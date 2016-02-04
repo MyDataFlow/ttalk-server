@@ -128,6 +128,7 @@
             -> 'ignore' | {'error',_} | {'ok',pid()}.
 start_link(Host, Opts) ->
     Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
+    %% 创建muc进程
     gen_server:start_link({local, Proc}, ?MODULE, [Host, Opts], []).
 
 
@@ -423,7 +424,7 @@ stop_supervisor(Host) ->
 route(Routed, State) ->
     route_by_privilege(Routed, State).
 
-
+%% room的路有
 -spec route_by_privilege({From :: ejabberd:jid(),
     To :: ejabberd:simple_jid() | ejabberd:jid(), Packet :: any()},
         state()) -> 'ok' | pid().
@@ -449,6 +450,8 @@ route_to_room(<<>>, {_,To,_} = Routed, State) ->
     {_, _, Nick} = jid:to_lower(To),
     route_by_nick(Nick, Routed, State);
 route_to_room(Room, {From,To,Packet} = Routed, #state{host=Host} = State) ->
+    %% 从再现的muc_online_room中找出room
+    %% 然后进行路有
     case mnesia:dirty_read(muc_online_room, {Room, Host}) of
         [] ->
             route_to_nonexistent_room(Room, Routed, State);
@@ -605,7 +608,7 @@ check_user_can_create_room(ServerHost, AccessCreate, From, RoomID) ->
             false
     end.
 
-
+%% 从mnesia中加载持久化的room信息
 -spec load_permanent_rooms(Host :: ejabberd:server(), Srv :: ejabberd:server(),
         Access :: access(), HistorySize :: 'undefined' | integer(),
         RoomShaper :: shaper:shaper()) -> 'ok'.
@@ -663,7 +666,7 @@ start_new_room(Host, ServerHost, Access, Room,
                                RoomShaper, Opts)
     end.
 
-
+%% 把room放入online的room中
 -spec register_room('undefined' | ejabberd:server(), room(),
                     'undefined' | pid()) -> {'aborted',_} | {'atomic',_}.
 register_room(Host, Room, Pid) ->

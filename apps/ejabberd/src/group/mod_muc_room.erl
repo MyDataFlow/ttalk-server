@@ -388,7 +388,7 @@ locked_state({route, From, ToNick,
 locked_state(Call, StateData) ->
     locked_error(Call, locked_state, StateData).
 
-
+%% 直接进行路有
 -spec normal_state({route, From :: ejabberd:jid(), To :: mod_muc:nick(),
                    Packet :: jlib:xmlel()}, state()) -> fsm_return().
 normal_state({route, From, <<>>,
@@ -693,7 +693,7 @@ occupant_jid(#user{nick=Nick}, RoomJID) ->
 route(Pid, From, ToNick, Packet) ->
     gen_fsm:send_event(Pid, {route, From, ToNick, Packet}).
 
-
+%% 给群组中的人发送消息
 -spec process_groupchat_message(ejabberd:simple_jid() | ejabberd:jid(),
                                 jlib:xmlel(), state()) -> fsm_return().
 process_groupchat_message(From, #xmlel{name = <<"message">>,
@@ -741,7 +741,7 @@ can_send_broadcasts(Role, StateData) ->
     (Role == moderator)
     or (Role == participant)
     or ((StateData#state.config)#config.moderated == false).
-
+%% 开始真正的广播
 broadcast_changed_subject(From, FromNick, Packet, StateData) ->
     case ejabberd_hooks:run_fold(filter_room_packet,
                                  StateData#state.host, Packet,
@@ -4202,7 +4202,7 @@ element_size(El) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Routing functions
-
+%% 进行消息路有
 -spec route_message(routed_message(), state()) -> state().
 route_message(#routed_message{allowed = true, type = <<"groupchat">>,
     from = From, packet = Packet, lang = Lang}, StateData) ->
@@ -4215,6 +4215,7 @@ route_message(#routed_message{allowed = true, type = <<"groupchat">>,
     {MessageShaper, MessageShaperInterval} =
         shaper:update(Activity#activity.message_shaper, Size),
     if
+        %% 进行流控
         Activity#activity.message /= undefined ->
             ErrText = <<"Traffic rate limit is exceeded">>,
             Err = jlib:make_error_reply(
@@ -4295,6 +4296,7 @@ route_message(#routed_message{allowed = true, type = <<"chat">>, from = From, pa
         StateData#state.jid,
         From, Err),
     StateData;
+%% 路有邀请信息 
 route_message(#routed_message{allowed = true, type = Type, from = From,
                               packet = #xmlel{name = <<"message">>,
                                               children = Els} = Packet, lang = Lang},
