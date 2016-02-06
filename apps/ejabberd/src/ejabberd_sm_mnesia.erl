@@ -22,7 +22,8 @@
          cleanup/1,
          total_count/0,
          unique_count/0]).
-
+%% mnesia作为后端的时候
+%% 会创建全局的session表
 -spec start(list()) -> any().
 start(_Opts) ->
     mnesia:create_table(session,
