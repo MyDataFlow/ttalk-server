@@ -544,6 +544,7 @@ do_route(From, To, Packet) ->
     #xmlel{name = Name, attrs = Attrs} = Packet,
     case LResource of
         <<>> ->
+            %% 如果没有指定resource的话
             do_route_no_resource(Name, xml:get_attr_s(<<"type">>, Attrs),
                                  From, To, Packet);
         _ ->
@@ -765,7 +766,8 @@ clean_session_list([S1, S2 | Rest], Res) ->
       LServer :: ejabberd:lserver().
 get_user_present_pids(LUser, LServer) ->
     Ss = clean_session_list(?SM_BACKEND:get_sessions(LUser, LServer)),
-    [{S#session.priority, element(2,S#session.sid)} || S <- Ss, is_integer(S#session.priority)].
+    [{S#session.priority, element(2,S#session.sid)} 
+    || S <- Ss, is_integer(S#session.priority)].
 
 -spec get_user_present_resources(LUser :: ejabberd:user(),
                                  LServer :: ejabberd:server()

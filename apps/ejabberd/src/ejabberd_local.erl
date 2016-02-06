@@ -376,6 +376,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
+%% 自己域名下的消息进行路由
 -spec do_route(From :: ejabberd:jid(),
                To :: ejabberd:jid(),
                Packet :: jlib:xmlel()) -> 'nothing' | 'ok' | 'todo' | pid()
@@ -386,6 +387,7 @@ do_route(From, To, Packet) ->
            [From, To, Packet, 8]),
     if
         To#jid.luser /= <<>> ->
+            %% 直接交给session manager进行路由
             ejabberd_sm:route(From, To, Packet);
         To#jid.lresource == <<>> ->
             #xmlel{name = Name} = Packet,
@@ -465,7 +467,7 @@ cancel_timer(TRef) ->
         _ ->
             ok
     end.
-
+%% 直接向ejabberd_router注册自己
 do_register_host(Host) ->
     ejabberd_router:register_route(Host, {apply, ?MODULE, route}),
     ejabberd_hooks:add(local_send_to_resource_hook, Host,

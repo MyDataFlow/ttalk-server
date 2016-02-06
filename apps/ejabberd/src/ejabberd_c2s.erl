@@ -747,6 +747,7 @@ do_open_session_common(JID, #state{user = U, resource = R} = NewStateData0) ->
                       privacy_get_user_list, NewStateData0#state.server,
                       #userlist{},
                       [U, NewStateData0#state.server]),
+                    %% SID是时间戳＋PID
                     SID = {now(), self()},
                     Conn = get_conn_type(NewStateData0),
                     Info = [{ip, NewStateData0#state.ip}, {conn, Conn},

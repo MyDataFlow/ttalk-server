@@ -228,21 +228,25 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
-
+%% 进行消息路由
 do_route(OrigFrom, OrigTo, OrigPacket) ->
     ?DEBUG("route~n\tfrom ~p~n\tto ~p~n\tpacket ~p~n",
            [OrigFrom, OrigTo, OrigPacket]),
     %% Filter globally
+    %% 先进行全局过滤
     case ejabberd_hooks:run_fold(filter_packet,
                                  {OrigFrom, OrigTo, OrigPacket}, []) of
         {From, To, Packet} ->
             LDstDomain = To#jid.lserver,
             case mnesia:dirty_read(route, LDstDomain) of
                 [] ->
+                  %% 如果不是自己负责的域名
+                  %% 就交给s2s进行路有
                     ejabberd_s2s:route(From, To, Packet);
                 [#route{handler=Handler}] ->
                     do_local_route(OrigFrom, OrigTo, OrigPacket, LDstDomain, Handler)
             end;
+        %% 如果是drop的话，就直接丢弃    
         drop ->
             ejabberd_hooks:run(xmpp_stanza_dropped, 
                                OrigFrom#jid.lserver,
