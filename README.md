@@ -10,14 +10,7 @@ This project began its life as a fork of
 and later underwent some major cleanup, refactorization and optimization.
 
 Major steps performed:
-*   bringing the project source tree to compliance with OTP project structure
-    recommendations,
-*   swapping `autotools` for the Erlang community-standard build tool `rebar`,
-*   removal of obsolete and/or rarely used modules to reduce maintenance
-    burden,
-*   reduction of runtime memory consumption by refactoring the code
-    to use Erlang's binary data type for string manipulation and storage
-    instead of operating on linked lists of characters,
+
 *   advanced offline messages storage
 *   advanced message ack
 *   advanced group support
@@ -149,3 +142,12 @@ TTalk 是一款基于MongooseIM的服务器。重点在企业级应用支持上�
 ----------------------------------------
 由于目前ttalk还无法运行目前只能用QQ群进行交流   
 QQ群：216591294
+
+TODO
+----------------------------------------
+
+* 简化链接流程
+* 减少路由的流程
+
+* disable negotiate features
+* make message routing more simple
