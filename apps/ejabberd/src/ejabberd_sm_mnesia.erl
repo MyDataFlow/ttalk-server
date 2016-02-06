@@ -54,7 +54,7 @@ get_sessions(Server) ->
           ['$$']}]),
     [ {USR, SID, Pri, Info} || [USR, SID, Pri, Info] <- Sessions ].
 
-
+%% 读取特定用户，特定服务器的session
 -spec get_sessions(ejabberd:user(), ejabberd:server()) -> [ejabberd_sm:session()].
 get_sessions(User, Server) ->
     mnesia:dirty_index_read(session, {User, Server}, #session.us).

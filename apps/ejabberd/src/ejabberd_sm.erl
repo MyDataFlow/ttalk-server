@@ -126,7 +126,7 @@ start_link() ->
       Packet :: jlib:xmlel() | ejabberd_c2s:broadcast().
 route(From, To, Packet) ->
     xmpp_router:route(?MODULE, From, To, Packet).
-
+%% 默认不使用优先级
 -spec open_session(SID, User, Server, Resource, Info) -> ok when
       SID :: 'undefined' | sid(),
       User :: ejabberd:user(),
@@ -499,6 +499,8 @@ set_session(SID, User, Server, Resource, Priority, Info) ->
     LResource = jid:resourceprep(Resource),
     US = {LUser, LServer},
     USR = {LUser, LServer, LResource},
+    %% usr是LUser, LServer, LResource
+    %% us是{LUser, LServer} 
     Session = #session{sid = SID,
                        usr = USR,
                        us = US,

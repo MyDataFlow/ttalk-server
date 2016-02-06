@@ -54,7 +54,7 @@
 
 -define(CRITICAL_MSG(Format, Args),
     lager:critical(Format, Args)).
-
+%% session 存储的信息
 -record(session, {sid,
                   usr,
                   us,
