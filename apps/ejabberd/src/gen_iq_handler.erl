@@ -125,7 +125,7 @@ handle(Host, Module, Function, Opts, From, To, IQ) ->
         no_queue ->
             process_iq(Host, Module, Function, From, To, IQ);
         {one_queue, Pid} ->
-            %% 想目标队列放松数据
+            %% 向目标队列发送数据
             Pid ! {process_iq, From, To, IQ};
         {queues, Pids} ->
             Pid = lists:nth(erlang:phash(now(), length(Pids)), Pids),

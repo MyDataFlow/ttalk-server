@@ -47,9 +47,10 @@ start_link(PoolName, PoolSize, ChildMods, ChildMF, ChildArgs) ->
         {ok, pid()} | ignore | {error, term()}.
 start_link(PoolName, PoolSize, MaxRestarts, ChildMods, ChildMF, ChildArgs) ->
     Args = [PoolName, PoolSize, MaxRestarts, ChildMods, ChildMF, ChildArgs],
+    %% 创建一个supervisor
     SupName = list_to_atom("cuesport_" ++ atom_to_list(PoolName) ++ "_sup"),
     supervisor:start_link({local, SupName}, ?MODULE, Args).
-
+%% 从池子中获得一个worker
 -spec get_worker(atom()) -> pid().
 get_worker(PoolName) ->
     [{pool_size, PoolSize}] = ets:lookup(PoolName, pool_size),
@@ -71,6 +72,7 @@ init([PoolName, PoolSize, MaxRestarts, ChildMods, {ChildM, ChildA}, ChildArgs]) 
     MFA = fun(Id, Args) ->
             {?MODULE, start_worker, [Id, PoolTable, {ChildM, ChildA, Args}]}
     end,
+    %% 创建children
     Children = [{N, MFA(N, Args), transient, 2000, worker, ChildMods}
         || {N, Args} <- lists:zip(lists:seq(1, PoolSize), ChildArgs)],
 

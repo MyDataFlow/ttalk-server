@@ -20,7 +20,7 @@ start_link(Opts) ->
     ChildMods = [redo, redo_redis_proto, redo_uri],
     ChildMF = {redo, start_link},
     ChildArgs = {for_all, [undefined, RedoOpts]},
-
+    
     supervisor:start_child(ejabberd_sm_backend_sup,
                            {ejabberd_redis_sup,
                             {cuesport, start_link,

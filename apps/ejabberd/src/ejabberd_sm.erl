@@ -921,7 +921,8 @@ commands() ->
                         result = {resources, {list, {resource, binary}}}}
         ].
 
-
+%% ejabberd管理命令
+%% 获得user的resources
 -spec user_resources(UserStr :: string(), ServerStr :: string()) -> [binary()].
 user_resources(UserStr, ServerStr) ->
     Resources = get_user_resources(list_to_binary(UserStr), list_to_binary(ServerStr)),
