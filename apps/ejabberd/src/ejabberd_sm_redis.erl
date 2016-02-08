@@ -28,7 +28,7 @@ start(Opts) ->
     %% Clean current node's sessions from previous life
     cleanup(node()).
 
-
+%% 得到所有的sessions
 -spec get_sessions() -> [ejabberd_sm:ses_tuple()].
 get_sessions() ->
     Keys = ejabberd_redis:cmd(["KEYS", hash(<<"*">>)]),
@@ -82,7 +82,9 @@ create_session(User, Server, Resource, Session) ->
     case lists:keysearch(Session#session.sid, #session.sid, OldSessions) of
         {value, OldSession} ->
             BOldSession = term_to_binary(OldSession),
-
+            %% 将session先放倒指定node为key的set中
+            %% 在将session放倒User + Server的set中
+            %% 和User + Server + Resource的set中
             error_or_ok(
               ejabberd_redis:cmd([["SADD", n(node()), hash(User, Server, Resource, Session#session.sid)],
                                   ["SREM", hash(User, Server), BOldSession],
