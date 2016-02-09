@@ -74,7 +74,7 @@ are_equal(_, _) ->
 from_binary(J) ->
     binary_to_jid1(J, []).
 
-
+%% 分割JID
 -spec binary_to_jid1(binary(), [byte()]) -> 'error' | ejabberd:jid().
 binary_to_jid1(<<$@, _J/binary>>, []) ->
     error;
@@ -91,7 +91,7 @@ binary_to_jid1(<<>>, []) ->
 binary_to_jid1(<<>>, N) ->
     make(<<>>, list_to_binary(lists:reverse(N)), <<>>).
 
-
+%% 截取hostname部分
 %% @doc Only one "@" is admitted per JID
 -spec binary_to_jid2(binary(),[byte()],[byte()]) -> 'error' | ejabberd:jid().
 binary_to_jid2(<<$@, _J/binary>>, _N, _S) ->
@@ -107,14 +107,14 @@ binary_to_jid2(<<>>, _N, []) ->
 binary_to_jid2(<<>>, N, S) ->
     make(list_to_binary(N), list_to_binary(lists:reverse(S)), <<>>).
 
-
+%% 截取resource部分
 -spec binary_to_jid3(binary(),[byte()],[byte()],[byte()]) -> 'error' | ejabberd:jid().
 binary_to_jid3(<<C, J/binary>>, N, S, R) ->
     binary_to_jid3(J, N, S, [C | R]);
 binary_to_jid3(<<>>, N, S, R) ->
     make(list_to_binary(N), list_to_binary(S), list_to_binary(lists:reverse(R))).
 
-
+%% 将JID组装成Binary
 -spec to_binary(ejabberd:simple_jid()  | ejabberd:jid()) ->  binary().
 to_binary(#jid{user = User, server = Server, resource = Resource}) ->
     to_binary({User, Server, Resource});
