@@ -4,7 +4,10 @@
 %% @author <mongooseim@erlang-solutions.com>
 %% @copyright 2014 Erlang Solutions, Ltd.
 %% This work was sponsored by Grindr LLC
-
+%% 高级消息处理机制
+%% 可靠性消息
+%% 时间敏感消息
+%% 透明性消息
 -include_lib("ejabberd/include/amp.hrl").
 -include_lib("ejabberd/include/ejabberd.hrl").
 -include_lib("ejabberd/include/jlib.hrl").
