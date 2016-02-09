@@ -161,13 +161,16 @@ init([{SockMod, Socket}, Opts]) ->
            end,
     StartTLS = lists:member(starttls, Opts),
     StartTLSRequired = lists:member(starttls_required, Opts),
+    %% TLSEnabled是true的时候，features的时候就没有tls
     TLSEnabled = lists:member(tls, Opts),
+    %% StartTLS = true or StartTLSRequired = true or TLSEnabled = true
     TLS = StartTLS orelse StartTLSRequired orelse TLSEnabled,
     TLSOpts1 =
     lists:filter(fun({certfile, _}) -> true;
                     ({ciphers, _}) -> true;
                     (_) -> false
                  end, Opts),
+    %% 不验证客户端
     TLSOpts = [verify_none | TLSOpts1],
     IP = peerip(SockMod, Socket),
     %% Check if IP is blacklisted:
@@ -179,6 +182,7 @@ init([{SockMod, Socket}, Opts]) ->
         false ->
             Socket1 =
             if
+                %% 此处设置一下，就可以直接使用tls
                 TLSEnabled ->
                     SockMod:starttls(Socket, TLSOpts);
                 true ->
@@ -383,7 +387,7 @@ maybe_sasl_mechanisms(Server) ->
                     attrs = [{<<"xmlns">>, ?NS_SASL}],
                     children = [ mechanism(S) || S <- Mechanisms ]}]
     end.
-
+%% 通过hook来完成feature的增加
 hook_enabled_features(Server) ->
     ejabberd_hooks:run_fold(c2s_stream_features, Server, [], [Server]).
 
@@ -1494,7 +1498,7 @@ send_and_maybe_buffer_stanza({_, _, Stanza} = Packet, State, StateName)->
             ?DEBUG("Send element error: ~p, try enter resume session", [SendResult]),
             maybe_enter_resume_session(BufferedStateData#state.stream_mgmt_id, BufferedStateData)
     end.
-
+%% 获取一个新的stream_id
 -spec new_id() -> binary().
 new_id() ->
     iolist_to_binary(randoms:get_string()).
