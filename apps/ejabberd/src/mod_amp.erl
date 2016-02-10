@@ -48,7 +48,8 @@ add_local_features(Acc, _From, _To, ?NS_AMP, _Lang) ->
     {result, Features};
 add_local_features(Acc, _From, _To, _NS, _Lang) ->
     Acc.
-
+%% 当使用hook查询freatures的时候
+%% 返回相应的features
 add_stream_feature(Acc, _Host) ->
     lists:keystore(<<"amp">>, #xmlel.name, Acc, ?AMP_FEATURE).
 
