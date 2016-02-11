@@ -5,7 +5,7 @@
 -compile([native, {hipe, [o3]}, {inline, [hex/1]}]).
 
 -export([bin_to_hex/1]).
-
+%% 将binary转化成16进制的表示
 bin_to_hex(B) when is_binary(B) ->
   bin_to_hex(B, <<>>).
 
