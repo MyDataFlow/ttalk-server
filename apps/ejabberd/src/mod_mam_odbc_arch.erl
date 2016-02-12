@@ -250,7 +250,7 @@ archive_message(_Result, Host, MessID, UserID,
     write_message(Host, Table, SMessID, SUserID, SBareRemJID,
                   SRemLResource, SDir, SSrcJID, SData).
 
-
+%% 将消息写入数据库
 -spec write_message(Host :: ejabberd:server(), Table :: string(),
         SMessID :: string(), SUserID :: string(), SBareRemJID :: string(),
         SRemLResource :: string(), SDir :: string(), SSrcJID :: string(),

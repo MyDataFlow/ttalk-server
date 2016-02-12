@@ -148,7 +148,7 @@ microseconds_to_datetime(MicroSeconds) when is_integer(MicroSeconds) ->
 
 %% -----------------------------------------------------------------------
 %% UID
-
+%% 使用node_id +  时间做成一个UUID
 -spec generate_message_id() -> integer().
 generate_message_id() ->
     {ok, NodeId} = ejabberd_node_id:node_id(),

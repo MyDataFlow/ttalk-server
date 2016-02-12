@@ -28,7 +28,7 @@ start() ->
     mnesia:add_table_copy(node, node(), ram_copies),
     register_node(node()),
     ok.
-
+%% 使用事务，这样才能保证顺序
 -spec register_node(atom()) -> 'ok'.
 register_node(NodeName) ->
     {atomic, _} = mnesia:transaction(fun() ->
@@ -39,7 +39,8 @@ register_node(NodeName) ->
         end
         end),
     ok.
-
+%% 每个节点都适用mnesia存储一个自身的ID
+%% 当任何进程查询的时候，都会缓存到进程字典中
 %% @doc Return an integer node ID.
 -spec node_id() -> {ok, nodeid()}.
 node_id() ->
@@ -56,7 +57,7 @@ node_id() ->
 -spec next_node_id() -> nodeid().
 next_node_id() ->
     max_node_id() + 1.
-
+%% 使用Mnesia进行foldl找到最大的id
 -spec max_node_id() -> nodeid().
 max_node_id() ->
     mnesia:foldl(fun(#node{id=Id}, Max) -> max(Id, Max) end, 0, node).

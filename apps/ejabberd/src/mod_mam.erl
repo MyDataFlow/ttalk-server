@@ -585,7 +585,7 @@ lookup_messages(Host, ArcID, ArcJID, RSM, Borders, Start, End, Now,
     mongoose_metrics:update([backends, ?MODULE, lookup], Diff),
     R.
 
-
+%% 存档消息
 -spec archive_message(Host :: ejabberd:server(), MessID :: message_id(),
     ArcID :: archive_id(), LocJID :: ejabberd:jid(), RemJID :: ejabberd:jid(),
     SrcJID :: ejabberd:jid(), Dir :: incoming | outgoing, Packet :: term()
