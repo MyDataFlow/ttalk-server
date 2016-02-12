@@ -281,6 +281,7 @@ init([Host, StartInterval, ParentPid, Dedicated]) ->
     put(mim_host, Host),
     put(mim_process_type, odbc_worker),
     put(mim_odbc_dedicated, Dedicated),
+    %% 是否需要keepalive
     case ejabberd_config:get_local_option({odbc_keepalive_interval, Host}) of
         KeepaliveInterval when is_integer(KeepaliveInterval) ->
             timer:apply_interval(KeepaliveInterval*1000, ?MODULE,
@@ -292,6 +293,7 @@ init([Host, StartInterval, ParentPid, Dedicated]) ->
                        " for host ~p.~n", [_Other, Host])
     end,
     [DBType | _] = db_opts(Host),
+    %% 立刻发送connect消息给自己
     ?GEN_FSM:send_event(self(), connect),
     case Dedicated of
         true ->
@@ -324,6 +326,7 @@ connecting(connect, #state{host = Host} = State) ->
     case ConnectRes of
         {ok, Ref} ->
             erlang:monitor(process, Ref),
+            %% 链接成功了，重放所有请求
             lists:foreach(
               fun(Req) ->
                       ?GEN_FSM:send_event(self(), Req)
@@ -350,6 +353,8 @@ connecting(Event, State) ->
 connecting({sql_cmd, {sql_query, ?KEEPALIVE_QUERY}, _Timestamp}, From, State) ->
     ?GEN_FSM:reply(From, {error, "SQL connection failed"}),
     {next_state, connecting, State};
+%% 收到消息，但是还没有建立链接
+%% 进行链接后再执行
 connecting({sql_cmd, Command, Timestamp} = Req, From, State) ->
     ?DEBUG("queuing pending request while connecting:~n\t~p", [Req]),
     {Len, PendingRequests} = State#state.pending_requests,
@@ -627,7 +632,8 @@ abort_on_driver_error(Reply, From) ->
 
 
 %% == pure ODBC code
-
+%% 使用Erlang的odbc驱动
+%% 主要针对MSSQL这种
 %% part of init/1
 %% @doc Open an ODBC database connection
 -spec odbc_connect(ConnString :: string()) -> {ok | error, _}.
@@ -647,7 +653,7 @@ binaryze_odbc(ODBCResult) ->
     ODBCResult.
 
 %% == Native PostgreSQL code
-
+%% 直接使用pgsql直连
 %% part of init/1
 %% @doc Open a database connection to PostgreSQL
 pgsql_connect(Server, Port, DB, Username, Password) ->

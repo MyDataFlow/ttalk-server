@@ -667,7 +667,7 @@ is_jid_in_user_roster(#jid{lserver=LServer, luser=LUser},
         {none, []}, [LUser, LServer, RemBareJID]),
     Subscription == from orelse Subscription == both.
 
-
+%% 对ejabberd_odbc的封装
 -spec success_sql_query(ejabberd:server(), _) -> any().
 success_sql_query(Host, Query) ->
     case ejabberd_odbc:sql_query(Host, Query) of
