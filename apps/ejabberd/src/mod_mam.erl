@@ -393,14 +393,18 @@ handle_lookup_messages(
         ArcJID=#jid{},
         IQ=#iq{sub_el = QueryEl}) ->
     Now = mod_mam_utils:now_to_microseconds(now()),
+    %% 得到host
     Host = server_host(ArcJID),
+    %% 得到用户ID
     ArcID = archive_id_int(Host, ArcJID),
     QueryID = xml:get_tag_attr_s(<<"queryid">>, QueryEl),
     %% Filtering by date.
     %% Start :: integer() | undefined
+    %% 通过时间段查询
     Start = elem_to_start_microseconds(QueryEl),
     End   = elem_to_end_microseconds(QueryEl),
     %% Filtering by contact.
+    %% 通过对方用户
     With  = elem_to_with_jid(QueryEl),
     RSM   = fix_rsm(jlib:rsm_decode(QueryEl)),
     Borders = borders_decode(QueryEl),

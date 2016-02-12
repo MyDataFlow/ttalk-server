@@ -575,7 +575,7 @@ extract_messages(Host, UserID, Filter, IOffset, IMax, true) ->
         do_extract_messages(Host, UserID, Filter, IOffset, IMax, " ORDER BY id DESC "),
     ?DEBUG("extract_messages query returns ~p", [MessageRows]),
     lists:reverse(MessageRows).
-
+%% 查出所有指定用户的消息
 do_extract_messages(Host, UserID, Filter, 0, IMax, Order) ->
     {LimitSQL, LimitMSSQL} = odbc_queries:get_db_specific_limits(IMax),
     mod_mam_utils:success_sql_query(

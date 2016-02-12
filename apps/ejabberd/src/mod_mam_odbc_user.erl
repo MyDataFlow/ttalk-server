@@ -141,7 +141,7 @@ create_user_archive(Host, Server, UserName) ->
        "(server, user_name) VALUES ('", SServer, "', '", SUserName, "')"]),
     ok.
 
-
+%% 查询出用户名字映射的ID
 do_query_archive_id(mssql, Host, SServer, SUserName) ->
     odbc_queries_mssql:query_archive_id(Host, SServer, SUserName);
 do_query_archive_id(_, Host, SServer, SUserName) ->

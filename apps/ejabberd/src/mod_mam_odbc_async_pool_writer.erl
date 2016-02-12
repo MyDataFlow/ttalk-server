@@ -212,7 +212,7 @@ archive_message(_Result, Host,
                     {error, timeout}
             end
     end.
-
+%% 如果队列长度超过500了，那么说明过载了
 is_overloaded(Pid) ->
     {message_queue_len, Len} = erlang:process_info(Pid, message_queue_len),
     Len > 500.
