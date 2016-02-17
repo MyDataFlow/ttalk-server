@@ -532,7 +532,7 @@ inner_transaction(F) ->
         Res ->
             {atomic, Res}
     end.
-
+%% 不准许执行嵌套事务
 -spec outer_transaction(F :: fun(),
                         NRestarts :: 0..10,
                         Reason :: any()) -> {'aborted',_} | {'atomic',_}.
@@ -589,7 +589,7 @@ execute_bloc(F) ->
         Res ->
             {atomic, Res}
     end.
-
+%% 将所有的查询结果都转化成ODBC的形式
 sql_query_internal(Query) ->
     State = get(?STATE_KEY),
     Res = case State#state.db_type of

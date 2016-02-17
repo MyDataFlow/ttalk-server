@@ -51,7 +51,7 @@ group_name() ->
 su_key(#jid{lserver = LServer, luser = LUser}) ->
     {LServer, LUser}.
 
-
+%% MAM的用户缓存
 %% ----------------------------------------------------------------------
 %% gen_mod callbacks
 %% Starting and stopping functions for users' archives
