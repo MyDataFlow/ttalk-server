@@ -108,14 +108,20 @@ stop(_State) ->
 -spec db_init() -> list().
 %% 初始化Mnesia
 db_init() ->
+    %% 此处返回已经连接的Mnesia节点
     case mnesia:system_info(extra_db_nodes) of
         [] ->
+            %% 为空说明没有连接相应的节点
+            %% 也就是没有元数据表
             application:stop(mnesia),
+            %% 在当前节点上创建元数据表
             mnesia:create_schema([node()]),
+            %% 永久启动Mnesia
             application:start(mnesia, permanent);
         _ ->
             ok
     end,
+    %% 等待本地的所有table
     mnesia:wait_for_tables(mnesia:system_info(local_tables), infinity).
 
 %% 启动所有的mod，这里面mod就是插件

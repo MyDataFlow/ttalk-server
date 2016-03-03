@@ -102,7 +102,8 @@ compile_odbc_type_helper() ->
     CodeStr = odbc_type_helper(Type),
     {Mod, Code} = dynamic_compile:from_string(CodeStr),
     code:load_binary(Mod, "ejabberd_odbc_type.erl", Code).
-
+%% 得到ODBC后端的类型
+%% 使用动态生成的代码
 odbc_type_helper(Type) ->
     lists:flatten(
         ["-module(ejabberd_odbc_type).
