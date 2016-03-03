@@ -517,9 +517,11 @@ set_session(SID, User, Server, Resource, Priority, Info) ->
       Packet :: jlib:xmlel() | ejabberd_c2s:broadcast().
 do_route(From, To, {broadcast, _} = Broadcast) ->
     ?DEBUG("from=~p,to=~p,broadcast=~p", [From, To, Broadcast]),
+    %% 解析出目标的信息
     #jid{ luser = LUser, lserver = LServer, lresource = LResource} = To,
     case LResource of
         <<>> ->
+            %% 得到用户所有的链接进行广播
             CurrentPids = get_user_present_pids(LUser, LServer),
             ejabberd_hooks:run(sm_broadcast, To#jid.lserver,
                                [From, To, Broadcast, length(CurrentPids)]),
@@ -692,6 +694,7 @@ route_message(From, To, Packet) ->
     LUser = To#jid.luser,
     LServer = To#jid.lserver,
     PrioPid = get_user_present_pids(LUser,LServer),
+    %% 得到用户的所有链接，进行广播
     case catch lists:max(PrioPid) of
         {Priority, _} when is_integer(Priority), Priority >= 0 ->
             lists:foreach(
@@ -706,6 +709,7 @@ route_message(From, To, Packet) ->
               end,
               PrioPid);
         _ ->
+            %% 如果不在线，那么进行离线存储
             case xml:get_tag_attr_s(<<"type">>, Packet) of
                 <<"error">> ->
                     ok;
