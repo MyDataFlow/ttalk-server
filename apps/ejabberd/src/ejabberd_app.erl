@@ -46,10 +46,14 @@ start(normal, _Args) ->
     %% 初始化数据库
     db_init(),
     application:start(p1_cache_tab),
-
+    %% 加载nif驱动
     load_drivers([tls_drv]),
+    %% 启动翻译器
     translate:start(),
+    %% 权限控制，定制的版本需要整体去掉
     acl:start(),
+    %% node_id的分配器，用来为每个节点分配ID
+    %% 这样就能完成每个节点的分配ID
     ejabberd_node_id:start(),
     ejabberd_ctl:init(),
     ejabberd_commands:init(),
@@ -57,8 +61,11 @@ start(normal, _Args) ->
     ejabberd_config:start(),
     ejabberd_check:config(),
     maybe_start_alarms(),
+    %% 连接各个节点
     connect_nodes(),
     {ok, _} = Sup = ejabberd_sup:start_link(),
+    %% 启动认证部份和数据库部分，ttalkIM将只保留数据持久化部分
+    %% 群组和用户部分，只通过API部分进行操作
     ejabberd_rdbms:start(),
     mongoose_riak:start(),
     ejabberd_auth:start(),
