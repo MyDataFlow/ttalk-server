@@ -46,7 +46,7 @@
 
 -type riakc_map_op() :: {{binary(), MapDataType :: atom()},
                           fun((riakc_datatype:datatype()) -> riakc_datatype:datatype())}.
-
+%% 启动riak的连接进程
 -spec start() -> {ok, pid()} | ignore.
 start() ->
     case ejabberd_config:get_local_option(riak_server) of

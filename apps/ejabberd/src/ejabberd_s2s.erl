@@ -83,6 +83,7 @@
 %%--------------------------------------------------------------------
 %% Description: Starts the server
 %%--------------------------------------------------------------------
+%% 启动S2S的服务器
 -spec start_link() -> 'ignore' | {'error',_} | {'ok',pid()}.
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -138,6 +139,9 @@ get_connections_pids(FromTo) ->
     end.
 
 -spec try_register(fromto()) -> any().
+%% 注册s2s的通道
+%% 虽然我现在不需要，将来还是会需要的
+%% 这个毕竟提供了IDC到IDC可以通过这个解决
 try_register(FromTo) ->
     Key = list_to_binary(randoms:get_string()),
     MaxS2SConnectionsNumber = max_s2s_connections_number(FromTo),

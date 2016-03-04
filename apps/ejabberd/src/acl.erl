@@ -62,7 +62,7 @@
               aclspec :: aclspec()
              }).
 -type acl() :: #acl{}.
-
+%% 创建acl表
 start() ->
     mnesia:create_table(acl,
                         [{ram_copies, [node()]},
@@ -76,7 +76,7 @@ start() ->
                 ACLSpec :: aclspec()) -> acl().
 to_record(Host, ACLName, ACLSpec) ->
     #acl{aclname = {ACLName, Host}, aclspec = normalize_spec(ACLSpec)}.
-
+%% 添加一条规则
 -spec add(Host :: host(),
           ACLName :: atom(),
           ACLSpec :: aclspec()) -> {atomic, term()} | {aborted, term()}.

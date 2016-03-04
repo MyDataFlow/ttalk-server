@@ -104,7 +104,7 @@ start() ->
             halt(?STATUS_USAGE)
     end.
 
-
+%% 创建两个控制表
 -spec init() -> atom() | ets:tid().
 init() ->
     ets:new(ejabberd_ctl_cmds, [named_table, set, public]),
