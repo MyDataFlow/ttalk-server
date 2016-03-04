@@ -136,12 +136,14 @@ stop(Host) ->
 
 %% Server side functions
 %% ------------------------------------------------------------------
-
+%% 处理离线消息
 handle_offline_msg(#offline_msg{us=US} = Msg, AccessMaxOfflineMsgs) ->
     {LUser, LServer} = US,
+    %% 尝试得到所有的消息
     Msgs = receive_all(US, [Msg]),
     MaxOfflineMsgs = get_max_user_messages(
         AccessMaxOfflineMsgs, LUser, LServer),
+    %% 持久化离线消息
     case ?BACKEND:write_messages(LUser, LServer, Msgs, MaxOfflineMsgs) of
         ok ->
             ok;
@@ -155,6 +157,7 @@ handle_offline_msg(#offline_msg{us=US} = Msg, AccessMaxOfflineMsgs) ->
 
 %% Function copied from ejabberd_sm.erl:
 get_max_user_messages(AccessRule, LUser, Host) ->
+    %% 得到当前用户可以保存的最大消息数量
     case acl:match_rule(Host, AccessRule, jid:make(LUser, Host, <<>>)) of
 	Max when is_integer(Max) -> Max;
 	infinity -> infinity;

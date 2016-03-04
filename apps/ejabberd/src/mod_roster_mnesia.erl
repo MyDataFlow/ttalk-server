@@ -55,7 +55,7 @@ read_roster_version(LUser, LServer) ->
         [#roster_version{version = V}] -> V;
         [] -> error
     end.
-
+%% 写入roster的版本
 write_roster_version(LUser, LServer, InTransaction, Ver) ->
     US = {LUser, LServer},
     if InTransaction ->
@@ -64,7 +64,7 @@ write_roster_version(LUser, LServer, InTransaction, Ver) ->
            mnesia:dirty_write(#roster_version{us = US,
                                               version = Ver})
     end.
-
+%% 读取用户的花名册
 get_roster(LUser, LServer) ->
     US = {LUser, LServer},
     case catch mnesia:dirty_index_read(roster, US,

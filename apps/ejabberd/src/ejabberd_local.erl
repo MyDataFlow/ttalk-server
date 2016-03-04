@@ -336,6 +336,7 @@ handle_info({unregister_iq_handler, Host, XMLNS}, State) ->
     ets:delete(?IQTABLE, {XMLNS, Host}),
     catch mod_disco:unregister_feature(Host, XMLNS),
     {noreply, State};
+%% 刷新IQ Handlers
 handle_info(refresh_iq_handlers, State) ->
     lists:foreach(
       fun(T) ->

@@ -52,7 +52,7 @@
 -include("jlib.hrl").
 
 -type feature() :: any().
-
+%% 服务发现服务
 -spec start(ejabberd:server(), list()) -> 'ok'.
 start(Host, Opts) ->
     ejabberd_local:refresh_iq_handlers(),

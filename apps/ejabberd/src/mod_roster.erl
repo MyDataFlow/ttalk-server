@@ -191,7 +191,7 @@ stop(Host) ->
     ejabberd_hooks:delete(roster_get_versioning_feature, Host,
                           ?MODULE, get_versioning_feature, 50),
     gen_iq_handler:remove_iq_handler(ejabberd_sm, Host, ?NS_ROSTER).
-
+%% 处理IQ请求
 process_iq(From, To, IQ) ->
     #iq{sub_el = SubEl} = IQ,
     #jid{lserver = LServer} = From,
@@ -338,7 +338,7 @@ create_sub_el(Items, Version) ->
             attrs = [{<<"xmlns">>, ?NS_ROSTER},
                      {<<"ver">>, Version}],
             children = Items}].
-
+%% 得到用户的花名册
 get_user_roster(Acc, {LUser, LServer}) ->
     lists:filter(fun (#roster{subscription = none, ask = in}) ->
                          false;
@@ -379,7 +379,7 @@ item_to_xml(Item) ->
 
 get_roster_by_jid_t(LUser, LServer, LJID) ->
     ?BACKEND:get_roster_by_jid_t(LUser, LServer, LJID).
-
+%% 设置出席
 process_iq_set(#jid{lserver = LServer} = From, To, #iq{sub_el = SubEl} = IQ) ->
     #xmlel{children = Els} = SubEl,
     ejabberd_hooks:run(roster_set, LServer, [From, To, SubEl]),

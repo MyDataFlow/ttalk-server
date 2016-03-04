@@ -219,6 +219,7 @@ filter_room_packet(Packet, FromNick,
                    FromJID=#jid{},
                    RoomJID=#jid{}) ->
     ?DEBUG("Incoming room packet.", []),
+    
     IsComplete = is_complete_message(?MODULE, incoming, Packet),
     case IsComplete of
         true -> archive_room_packet(Packet, FromNick, FromJID, RoomJID);
