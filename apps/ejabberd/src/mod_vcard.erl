@@ -98,7 +98,7 @@
 -callback search_fields(VHost) ->
     Res :: list() when
     VHost :: binary().
-
+%% vCard默认搜索域
 -spec default_search_fields() -> list().
 default_search_fields() ->
     [{<<"User">>, <<"user">>},
@@ -315,6 +315,7 @@ config_change(Acc, _, _, _) ->
 %% ------------------------------------------------------------------
 %% Internal
 %% ------------------------------------------------------------------
+%% 将消息路由出去
 do_route(_VHost, From, #jid{user = User,
                             resource =Resource} = To, Packet, _IQ)
   when (User /= <<"">>) or (Resource /= <<"">>) ->
