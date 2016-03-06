@@ -99,6 +99,7 @@
     Res :: list() when
     VHost :: binary().
 %% vCard默认搜索域
+%% vCard基本上满足一个人基本信息的需求
 -spec default_search_fields() -> list().
 default_search_fields() ->
     [{<<"User">>, <<"user">>},
