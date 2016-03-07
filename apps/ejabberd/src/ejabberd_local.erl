@@ -92,16 +92,20 @@ start_link() ->
                  Packet :: jlib:xmlel()
                  ) -> 'nothing' | 'ok' | 'todo' | pid()
                     | {'error','lager_not_running'} | {'process_iq',_,_,_}.
+%% 处理IQ                    
 process_iq(From, To, Packet) ->
     IQ = jlib:iq_query_info(Packet),
     case IQ of
         #iq{xmlns = XMLNS} ->
             Host = To#jid.lserver,
+            %% 在IQ表里面找出相应的模块和函数
             case ets:lookup(?IQTABLE, {XMLNS, Host}) of
                 [{_, Module, Function}] ->
                     ResIQ = Module:Function(From, To, IQ),
                     if
                         ResIQ /= ignore ->
+                            %% 如果不是没有返回的请求
+                            %% 就需要将结果路由回发送者
                             ejabberd_router:route(
                               To, From, jlib:iq_to_xml(ResIQ));
                         true ->
