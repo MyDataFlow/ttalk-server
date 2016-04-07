@@ -224,6 +224,7 @@ init([Host, ServerHost, Access, Room, HistorySize, RoomShaper, Creator, _Nick,
       DefRoomOpts]) ->
     %% 监控死亡的消息
     process_flag(trap_exit, true),
+    %% 为每个Room创建一个整流，进行流量控制
     Shaper = shaper:new(RoomShaper),
     State = set_affiliation(Creator, owner,
                             #state{host = Host,
@@ -2399,7 +2400,8 @@ lqueue_new(Max) ->
         len = 0,
         max = Max}.
 
-
+%% 有限的保存一定量的消息
+%% 当设置为0的时候，直接就不存储任何消息
 %% @doc If the message queue limit is set to 0, do not store messages.
 %% Otherwise, rotate messages in the queue store.
 -spec lqueue_in(any(), lqueue()) -> lqueue().
@@ -2428,7 +2430,7 @@ lqueue_cut(Q, N) ->
 lqueue_to_list(#lqueue{queue = Q1}) ->
     queue:to_list(Q1).
 
-
+%% 将消息添加到历史消息中
 -spec add_message_to_history(mod_muc:nick(), ejabberd:jid(), jlib:xmlel(),
                             state()) -> state().
 add_message_to_history(FromNick, FromJID, Packet, StateData) ->
@@ -4208,8 +4210,10 @@ element_size(El) ->
 -spec route_message(routed_message(), state()) -> state().
 route_message(#routed_message{allowed = true, type = <<"groupchat">>,
     from = From, packet = Packet, lang = Lang}, StateData) ->
+    %% 得到用户状态
     Activity = get_user_activity(From, StateData),
     Now = now_to_usec(os:timestamp()),
+    %% 得到最小的时间间隔
     MinMessageInterval = trunc(gen_mod:get_module_opt(
         StateData#state.server_host,
         mod_muc, min_message_interval, 0) * 1000000),
@@ -4226,6 +4230,7 @@ route_message(#routed_message{allowed = true, type = <<"groupchat">>,
                 StateData#state.jid,
                 From, Err),
             StateData;
+        %% 当前时间已经大于时间间隔了    
         Now >= Activity#activity.message_time + MinMessageInterval,
             MessageShaperInterval == 0 ->
             {RoomShaper, RoomShaperInterval} =
@@ -4289,6 +4294,8 @@ route_message(#routed_message{allowed = true, type = <<"error">>, from = From,
         _ ->
             StateData
     end;
+%% 群组聊天中
+%% 不准许使用单聊
 route_message(#routed_message{allowed = true, type = <<"chat">>, from = From, packet = Packet,
     lang = Lang}, StateData) ->
     ErrText = <<"It is not allowed to send private messages to the conference">>,
