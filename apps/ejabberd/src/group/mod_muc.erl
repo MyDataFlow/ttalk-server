@@ -23,7 +23,7 @@
 %%% 02111-1307 USA
 %%%
 %%%----------------------------------------------------------------------
-
+%%% ejabberd 用来处理多人聊天室
 -module(mod_muc).
 -author('alexey@process-one.net').
 -xep([{xep, 45}, {version, "1.25"}]).
@@ -258,18 +258,21 @@ can_use_nick(Host, JID, Nick) ->
 %%--------------------------------------------------------------------
 -spec init([ejabberd:server() | list(),...]) -> {'ok',state()}.
 init([Host, Opts]) ->
+    %% 创建磁盘mnesia表
     mnesia:create_table(muc_room,
                         [{disc_copies, [node()]},
                          {attributes, record_info(fields, muc_room)}]),
     mnesia:create_table(muc_registered,
                         [{disc_copies, [node()]},
                          {attributes, record_info(fields, muc_registered)}]),
+    %% 在线的room保存在内存中
     mnesia:create_table(muc_online_room,
                         [{ram_copies, [node()]},
                          {attributes, record_info(fields, muc_online_room)}]),
     mnesia:add_table_copy(muc_online_room, node(), ram_copies),
     mnesia:add_table_copy(muc_room, node(), disc_copies),
     mnesia:add_table_copy(muc_registered, node(), disc_copies),
+    %% 使用ets保存在Room的在线用户
     catch ets:new(muc_online_users, [bag, named_table, public, {keypos, 2}]),
     MyHost = gen_mod:get_opt_host(Host, Opts, <<"conference.@HOST@">>),
     update_tables(MyHost),
@@ -463,17 +466,19 @@ route_to_room(Room, {From,To,Packet} = Routed, #state{host=Host} = State) ->
             ok
     end.
 
-
+%% 处理不存在的room
 -spec route_to_nonexistent_room(room(), from_to_packet(), state()) -> 'ok'.
 route_to_nonexistent_room(Room, {From, To, Packet},
                           #state{host=Host} = State) ->
     #xmlel{name = Name, attrs = Attrs} = Packet,
     Type = xml:get_attr_s(<<"type">>, Attrs),
     case {Name, Type} of
+        %% 出席标签
         {<<"presence">>, <<>>} ->
             ServerHost = State#state.server_host,
             Access = State#state.access,
             {_, AccessCreate, _, _} = Access,
+            %% 检查用户是否能创建room
             case check_user_can_create_room(ServerHost, AccessCreate,
                                             From, Room) of
                 true ->
@@ -481,6 +486,7 @@ route_to_nonexistent_room(Room, {From, To, Packet},
                     RoomShaper  = State#state.room_shaper,
                     DefRoomOpts = State#state.default_room_opts,
                     {_, _, Nick} = jid:to_lower(To),
+                    %% 创建新的room
                     {ok, Pid} = start_new_room(Host, ServerHost, Access, Room,
                                                HistorySize, RoomShaper, From,
                                                Nick, DefRoomOpts),
@@ -654,6 +660,7 @@ start_new_room(Host, ServerHost, Access, Room,
                Nick, DefRoomOpts) ->
     case mnesia:dirty_read(muc_room, {Room, Host}) of
         [] ->
+            %% 启动一个mod_muc_room进程
             ?DEBUG("MUC: open new room '~s'~n", [Room]),
             mod_muc_room:start(Host, ServerHost, Access,
                                Room, HistorySize,

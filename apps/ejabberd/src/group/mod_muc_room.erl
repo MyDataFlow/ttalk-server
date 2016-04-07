@@ -222,6 +222,7 @@ is_room_owner(RoomJID, UserJID) ->
 -spec init([any(),...]) -> {'ok',statename(), state()}.
 init([Host, ServerHost, Access, Room, HistorySize, RoomShaper, Creator, _Nick,
       DefRoomOpts]) ->
+    %% 监控死亡的消息
     process_flag(trap_exit, true),
     Shaper = shaper:new(RoomShaper),
     State = set_affiliation(Creator, owner,
