@@ -97,7 +97,7 @@ starttls(Pid, TLSSocket) ->
 
 compress(Pid, ZlibSocket) ->
     gen_server:call(Pid, {compress, ZlibSocket}).
-
+%% 告诉receviver的进程，它现在已经成为socket的controller了
 become_controller(Pid, C2SPid) ->
     gen_server:call(Pid, {become_controller, C2SPid}).
 
@@ -205,6 +205,9 @@ handle_info({Tag, _TCPSocket, Data},
 	    #state{socket = Socket,
 		   c2s_pid = C2SPid,
 		   sock_mod = SockMod} = State)
+    %% 此时的SockMod，有两种可能性
+    %% 一种是gen_tcp,一种是ejabberd_tls
+    %% 后者是因为ejabberd_c2s在初始化的时候调用了starttls
   when (Tag == tcp) or (Tag == ssl) ->
     case SockMod of
 	ejabberd_tls ->

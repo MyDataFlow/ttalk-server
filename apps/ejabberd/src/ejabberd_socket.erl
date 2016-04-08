@@ -65,6 +65,7 @@
 start(Module, SockMod, Socket, Opts) ->
     case Module:socket_type() of
         xml_stream ->
+            %% 获取每个节的最大长度
             MaxStanzaSize =
                 case lists:keysearch(max_stanza_size, 1, Opts) of
                     {value, {_, Size}} -> Size;
@@ -76,16 +77,24 @@ start(Module, SockMod, Socket, Opts) ->
                         {RecMod, RecPid, RecMod};
                     _ ->
                         %% gen_tcp 默认是是用该进程来处理
+                        %% 默认是不使用整流的，也就是没有流控
                         RecPid = ejabberd_receiver:start(
                                    Socket, SockMod, none, MaxStanzaSize),
+                        %% 默认的receviver是ejabberd_receiver
+                        %% RecPid代表着receviver的进程
                         {ejabberd_receiver, RecPid, RecPid}
                 end,
+            %% 默认sockmod 是gen_tcp
+            %% socket 默认是Socket
+            %% receiver 默认是receviver的进程
             SocketData = #socket_state{sockmod = SockMod,
                                        socket = Socket,
                                        receiver = RecRef},
              %% 如果是ejabberd_c2s的话，直接用SocketData做参数                     
             case Module:start({?MODULE, SocketData}, Opts) of
+                %% 创建ejabberd_c2s成功后
                 {ok, Pid} ->
+                    %% 让Socket的归属权为Receiver
                     case SockMod:controlling_process(Socket, Receiver) of
                         ok ->
                             ok;
@@ -161,6 +170,10 @@ connect(Addr, Port, Opts, Timeout) ->
 
 -spec starttls(socket_state(),_) -> socket_state().
 starttls(SocketData, TLSOpts) ->
+    %% ejabberd_c2s在初始化的时候可能会调用这个
+    %% 首先将普通的socket升级为tls
+    %% 接着通知receiver进程变更SockMod
+    %% 最后反回新的socket_state
     {ok, TLSSocket} = ejabberd_tls:tcp_to_tls(SocketData#socket_state.socket, TLSOpts),
     ejabberd_receiver:starttls(SocketData#socket_state.receiver, TLSSocket),
     SocketData#socket_state{socket = TLSSocket, sockmod = ejabberd_tls}.
@@ -227,7 +240,7 @@ change_shaper(SocketData, Shaper)
     (SocketData#socket_state.receiver):change_shaper(
       SocketData#socket_state.socket, Shaper).
 
-
+%% 对socket的receiver进程进行监控
 -spec monitor(socket_state()) -> any().
 monitor(SocketData) when is_pid(SocketData#socket_state.receiver) ->
     erlang:monitor(process, SocketData#socket_state.receiver);

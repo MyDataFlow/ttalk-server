@@ -44,7 +44,7 @@
 
 socket_type() ->
     independent.
-
+%% 独立启动的监听者
 start_listener({Port, IP, tcp}, Opts) ->
     %% ejabberd_listener brutally kills its children, and doesn't provide any
     %% mechanism for doing a clean shutdown.  To work around this, we could

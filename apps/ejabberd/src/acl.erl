@@ -175,10 +175,13 @@ match_acl(all, _JID, _Host) ->
     true;
 match_acl(none, _JID, _Host) ->
     false;
+%% 检查ACL规则    
 match_acl(ACL, JID, Host) ->
+    %% 将JID小写
     LJID = jid:to_lower(JID),
     AllSpecs = ets:lookup(acl, {ACL, global}) ++ ets:lookup(acl, {ACL, Host}),
     Pred = fun(#acl{aclspec = S}) -> match(S, LJID, Host) end,
+    %% 遍历整个规则列表
     lists:any(Pred, AllSpecs).
 
 -spec is_server_valid(host(), ejabberd:server()) -> boolean().

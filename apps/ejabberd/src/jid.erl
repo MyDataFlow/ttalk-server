@@ -33,7 +33,7 @@
 -include("jlib.hrl").
 
 -define(SANE_LIMIT, 1024).
-
+%% 构建一个jid
 -spec make(User :: ejabberd:user(), Server :: ejabberd:server(),
            Resource :: ejabberd:resource()) ->
     ejabberd:jid()  | error.

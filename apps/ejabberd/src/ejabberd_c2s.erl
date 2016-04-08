@@ -78,7 +78,8 @@ start(SockData, Opts) ->
 start_link(SockData, Opts) ->
     ?GEN_FSM:start_link(ejabberd_c2s, [SockData, Opts],
                         fsm_limit_opts(Opts) ++ ?FSMOPTS).
-
+%% 这个地方如果反回independent
+%% 则代表其定监听的模块不是ejabberd_socket
 socket_type() ->
     xml_stream.
 
@@ -141,6 +142,7 @@ stop(FsmRef) ->
 %%          ignore                              |
 %%          {stop, StopReason}
 %%----------------------------------------------------------------------
+%% 这里面的SockMod是ejabberd_socket，Socket是socket_state的record
 init([{SockMod, Socket}, Opts]) ->
     Access = case lists:keyfind(access, 1, Opts) of
                  {_, A} -> A;
@@ -188,6 +190,8 @@ init([{SockMod, Socket}, Opts]) ->
                 true ->
                     Socket
             end,
+            %% 监控着socket
+            %% 实际上是监控着receiver进程
             SocketMonitor = SockMod:monitor(Socket1),
             {ok, wait_for_stream, #state{server         = ?MYNAME,
                                          socket         = Socket1,
@@ -300,11 +304,13 @@ stream_start_by_protocol_version(<<"1.0">>, #state{} = S) ->
 
 
 stream_start_negotiate_features(#state{} = S) ->
+    %% 服务器直接返回一个<?xml version='1.0'?>的头
     send_header(S, S#state.server, <<"1.0">>, default_language()),
     case {S#state.authenticated, S#state.resource} of
         {false, _} ->
             %% 需要认证
             %% 当SASL认证完成后，我们会看到authenticated是true
+            %% 向客户端发送特性
             stream_start_features_before_auth(S);
         {_, <<>>} ->
             %% 需要绑定
@@ -324,7 +330,7 @@ stream_start_features_before_auth(#state{server = Server} = S) ->
                                    mk_check_password3_with_authmodule(Server),
                                    mk_check_password5_with_authmodule(Server)),
     SockMod = (S#state.sockmod):get_sockmod(S#state.socket),
-
+    %% 主动发送特性
     send_element(S, stream_features(determine_features(SockMod, S))),
     fsm_next_state(wait_for_feature_request,
                    S#state{sasl_state = SASLState}).
@@ -477,6 +483,7 @@ wait_for_feature_request({xmlstreamelement, El}, StateData) ->
     TLSRequired = StateData#state.tls_required,
     SockMod = (StateData#state.sockmod):get_sockmod(StateData#state.socket),
     case {xml:get_attr_s(<<"xmlns">>, Attrs), Name} of
+        %% 收到了认证请求
         {?NS_SASL, <<"auth">>} when TLSEnabled or not TLSRequired ->
             Mech = xml:get_attr_s(<<"mechanism">>, Attrs),
             ClientIn = jlib:decode_base64(xml:get_cdata(Els)),
@@ -609,7 +616,7 @@ wait_for_sasl_response({xmlstreamerror, _}, StateData) ->
     {stop, normal, StateData};
 wait_for_sasl_response(closed, StateData) ->
     {stop, normal, StateData}.
-
+%% 等待资源绑定或恢复
 -spec wait_for_bind_or_resume(Item :: ejabberd:xml_stream_item(),
                               State :: state()) -> fsm_return().
 wait_for_bind_or_resume({xmlstreamelement,
@@ -1391,9 +1398,11 @@ terminate(_Reason, StateName, StateData) ->
 should_close_session(resume_session) -> true;
 should_close_session(session_established) -> true;
 should_close_session(_) -> false.
-
+%% 开始整流
+%% 检查ACL规则
 -spec change_shaper(state(), ejabberd:jid()) -> any().
 change_shaper(StateData, JID) ->
+    
     Shaper = acl:match_rule(StateData#state.server,
                             StateData#state.shaper, JID),
     (StateData#state.sockmod):change_shaper(StateData#state.socket, Shaper).

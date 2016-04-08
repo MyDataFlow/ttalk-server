@@ -66,7 +66,15 @@ start_listeners() ->
         undefined ->
             ignore;
         Ls ->
+            %%  { 5222, ejabberd_c2s, [
+            %%        {certfile, "priv/ssl/fake_server.pem"}, starttls,
+            %%        {access, c2s},
+            %%        {shaper, c2s_shaper},
+            %%        {max_stanza_size, 65536}
+            %%   ]}
+            %%
             Ls2 = lists:map(
+    
                 fun({Port, Module, Opts}) ->
                         case start_listener(Port, Module, Opts) of
                             {ok, _Pid} = R -> R;
@@ -106,6 +114,7 @@ start(Port, Module, Opts) ->
 start_dependent(Port, Module, Opts) ->
     try check_listener_options(Opts) of
         ok ->
+            %% 启动独立的进程去启动监听者
             proc_lib:start_link(?MODULE, init, [Port, Module, Opts])
     catch
         throw:{error, Error} ->
@@ -119,6 +128,8 @@ start_dependent(Port, Module, Opts) ->
 init(PortIP, Module, RawOpts) ->
     {Port, IPT, IPS, IPV, Proto, OptsClean} = parse_listener_portip(PortIP, RawOpts),
     {Opts, SockOpts} = prepare_opts(IPT, IPV, OptsClean),
+    %% 默认情形启动的是tcp
+    %% 只有指定udp的时候，才会去启动udp
     if Proto == udp ->
             init_udp(PortIP, Module, Opts, SockOpts, Port, IPS);
        true ->
@@ -161,6 +172,7 @@ init_tcp(PortIPProto, Module, Opts, SockOpts, Port, IPS) ->
     %% Inform my parent that this port was opened succesfully
     proc_lib:init_ack({ok, self()}),
     %% And now start accepting connection attempts
+    %% 进入accept循环
     accept(ListenSocket, Module, Opts).
 
 -spec listen_tcp(PortIPPRoto :: port_ip_proto(),
@@ -169,6 +181,7 @@ init_tcp(PortIPProto, Module, Opts, SockOpts, Port, IPS) ->
                  Port :: inet:port_number(),
                  IPS :: [any()]) -> port().
 listen_tcp(PortIPProto, Module, SockOpts, Port, IPS) ->
+    %% 查表，看socket是否已经存在了
     case ets:lookup(listen_sockets, PortIPProto) of
         [{PortIP, ListenSocket}] ->
             ?INFO_MSG("Reusing listening port for ~p", [Port]),
@@ -181,6 +194,7 @@ listen_tcp(PortIPProto, Module, SockOpts, Port, IPS) ->
                         catch
                             _:_ -> []
                         end,
+            %%  启动一个tcp的监听端口            
             Res = gen_tcp:listen(Port, [binary,
                                         {packet, 0},
                                         {active, false},
@@ -363,6 +377,7 @@ start_listener2(Port, Module, Opts) ->
     %% It is only required to start the supervisor in some cases.
     %% But it doesn't hurt to attempt to start it for any listener.
     %% So, it's normal (and harmless) that in most cases this call returns: {error, {already_started, pid()}}
+    %% 启动
     start_module_sup(Port, Module),
     start_listener_sup(Port, Module, Opts).
 
@@ -370,6 +385,8 @@ start_listener2(Port, Module, Opts) ->
       -> {'error',_} | {'ok','undefined' | pid()} | {'ok','undefined' | pid(),_}.
 start_module_sup(_PortIPProto, Module) ->
     Proc1 = gen_mod:get_module_proc("sup", Module),
+    %% 启动一个supervisor
+    %% 默认情况下会是ejabberd_c2s_sup
     ChildSpec1 =
         {Proc1,
          {ejabberd_tmp_sup, start_link, [Proc1, Module]},
@@ -382,6 +399,7 @@ start_module_sup(_PortIPProto, Module) ->
 -spec start_listener_sup(port_ip_proto(), Module :: atom(), Opts :: [any()])
       -> {'error',_} | {'ok','undefined' | pid()} | {'ok','undefined' | pid(),_}.
 start_listener_sup(PortIPProto, Module, Opts) ->
+    %% 将自己作为ejabberd_listeners的工作者进程启动
     ChildSpec = {PortIPProto,
                  {?MODULE, start, [PortIPProto, Module, Opts]},
                  transient,
