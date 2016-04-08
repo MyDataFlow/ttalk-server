@@ -449,6 +449,7 @@ process_iq_timeout(ID) ->
 process_iq_timeout() ->
     receive
         ID ->
+            %% 得到相应ID的callback函数
             case get_iq_callback(ID) of
                 {ok, undefined, Function} ->
                     Function(timeout);

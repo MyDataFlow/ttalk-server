@@ -332,7 +332,7 @@ process_data(Data, #state{parser = Parser,
     Size = size(Data),
     %% 更新流量统计
     mongoose_metrics:update([data, xmpp, received, xml_stanza_size], Size),
-
+    %% 处在慢链接上，让心跳重启下
     maybe_run_keep_alive_hook(Size, State),
     case exml_stream:parse(Parser, Data) of
         {ok, NewParser, Elems} ->

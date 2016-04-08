@@ -26,7 +26,10 @@
 
 -module(mod_ping).
 -author('bjc@kublai.com').
-
+%% 模块写的很精良
+%% 也很通用，但是有以下几个问题
+%% 1.服务器主动探测客户端
+%% 2.由于pong包没有及时返回导致误判为离线，默认32s的超时间隔
 -behavior(gen_mod).
 -behavior(gen_server).
 -xep([{xep, 199}, {version, "2.0"}]).
@@ -165,6 +168,8 @@ handle_cast({stop_ping, JID}, State) ->
 handle_cast({iq_pong, JID, timeout}, State) ->
     Timers = del_timer(JID, State#state.timers),
     ejabberd_hooks:run(user_ping_timeout, State#state.host, [JID]),
+    %% 此处默认操作是没有操作
+    %% 这样虽然浪费了一些资源，但是能保值不错误的踢下线
     case State#state.timeout_action of
         kill ->
             #jid{user = User, server = Server, resource = Resource} = JID,
@@ -234,6 +239,8 @@ user_keep_alive(JID) ->
 %% 添加前，先检查是否存在
 add_timer(JID, Interval, Timers) ->
     LJID = jid:to_lower(JID),
+    %% 每次都重新生成一个Timer
+    %% 并存储到Dict中
     NewTimers = case ?DICT:find(LJID, Timers) of
                     {ok, OldTRef} ->
                         cancel_timer(OldTRef),
