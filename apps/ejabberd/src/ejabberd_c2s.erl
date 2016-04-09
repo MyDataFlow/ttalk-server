@@ -23,7 +23,9 @@
 %%% 02111-1307 USA
 %%%
 %%%----------------------------------------------------------------------
-
+%%% 从整个过程来看
+%%% fetures阶段只需要保留认证，不太需要保留其它的东西
+%%% 这样可以直接进入session_established阶段
 -module(ejabberd_c2s).
 -author('alexey@process-one.net').
 -update_info({update, 0}).
@@ -336,6 +338,7 @@ stream_start_features_before_auth(#state{server = Server} = S) ->
                    S#state{sasl_state = SASLState}).
 
 stream_start_features_before_bind(#state{server = Server} = S) ->
+    %% 在绑定前默认是BIND和Session两个特性
     Features = ( [#xmlel{name = <<"bind">>,
                          attrs = [{<<"xmlns">>, ?NS_BIND}]},
                   #xmlel{name = <<"session">>,
@@ -627,6 +630,8 @@ wait_for_bind_or_resume({xmlstreamelement,
     maybe_resume_session(wait_for_bind_or_resume, El, StateData);
 wait_for_bind_or_resume({xmlstreamelement, El}, StateData) ->
     case jlib:iq_query_info(El) of
+        %% 如果是IQ
+        %% 并且是BIND操作
         #iq{type = set, xmlns = ?NS_BIND, sub_el = SubEl} = IQ ->
             U = StateData#state.user,
             R1 = xml:get_path_s(SubEl, [{elem, <<"resource">>}, cdata]),
@@ -679,6 +684,7 @@ wait_for_bind_or_resume(closed, StateData) ->
                              State :: state()) -> fsm_return().
 
 %% <enable xmlns='urn:xmpp:sm:3'/>
+%% 是否准许打开流控
 wait_for_session_or_sm({xmlstreamelement,
                         #xmlel{name = <<"enable">>} = El}, StateData) ->
     maybe_enable_stream_mgmt(wait_for_session_or_sm, El, StateData);
@@ -697,6 +703,8 @@ wait_for_session_or_sm({xmlstreamelement, El}, StateData0) ->
     StateData = maybe_increment_sm_incoming(StateData0#state.stream_mgmt,
                                             StateData0),
     case jlib:iq_query_info(El) of
+        %% 收到IQ
+        %% 并且是Session请求
         #iq{type = set, xmlns = ?NS_SESSION} ->
             maybe_open_session(El, StateData);
         _ ->
@@ -722,6 +730,8 @@ maybe_open_session(El, #state{jid = JID} = StateData) ->
     %% 验证用户是否是黑名单
     case user_allowed(JID, StateData) of
         true ->
+            %% 打开Session
+            %% 然后进入session_established状态
             do_open_session(El, JID, StateData);
         _ ->
             ejabberd_hooks:run(forbidden_session_hook,
@@ -738,6 +748,7 @@ do_open_session(El, JID, StateData) ->
                     ?INFO_MSG("(~w) Opened session for ~s",
                               [StateData#state.socket,
                                jid:to_binary(JID)]),
+                    %% 构建一个result包
                     Res = jlib:make_result_iq_reply(El),
                     Packet = {jid:to_bare(StateData#state.jid), StateData#state.jid, Res},
                     {_, _, NewStateData0, _} = send_and_maybe_buffer_stanza(Packet, StateData, wait_for_session_or_sm),
