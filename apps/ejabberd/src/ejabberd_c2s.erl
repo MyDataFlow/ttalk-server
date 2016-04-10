@@ -1448,7 +1448,7 @@ send_element(#state{server = Server} = StateData, El) ->
                        Server, [Server, El]),
     send_text(StateData, exml:to_binary(El)).
 
-
+%% 发送xml的头信息
 -spec send_header(State :: state(),
                   Server :: ejabberd:server(),
                   Version :: binary(),
