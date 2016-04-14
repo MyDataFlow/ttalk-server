@@ -324,6 +324,7 @@ find_connection(From, To) ->
                     NeededConnections = needed_connections_number(
                                           [], MaxS2SConnectionsNumber,
                                           MaxS2SConnectionsNumberPerNode),
+                    %% 开启一个新的远程连接
                     open_several_connections(
                       NeededConnections, MyServer,
                       Server, From, FromTo,

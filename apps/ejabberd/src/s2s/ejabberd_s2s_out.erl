@@ -257,6 +257,8 @@ open_socket(init, StateData) ->
             NewStateData = StateData#state{socket = Socket,
                                            tls_enabled = false,
                                            streamid = new_id()},
+            %% 发送S2S头
+            %% 然后进入等待状态                               
             send_text(NewStateData, list_to_binary(
                                       io_lib:format(?STREAM_HEADER,
                                                     [StateData#state.myname, StateData#state.server,
@@ -324,8 +326,8 @@ open_socket2(Type, Addr, Port) ->
                 {send_timeout, ?TCP_SEND_TIMEOUT},
                 {send_timeout_close, true},
                 {active, false},
-                Type],
-
+                Type], 
+    %% 建立远程连接            
     case (catch ejabberd_socket:connect(Addr, Port, SockOpts, Timeout)) of
         {ok, _Socket} = R -> R;
         {error, Reason} = R ->
@@ -337,14 +339,16 @@ open_socket2(Type, Addr, Port) ->
     end.
 
 %%----------------------------------------------------------------------
-
+%% 等待数据流
 -spec wait_for_stream(ejabberd:xml_stream_item(), state()) -> fsm_return().
 wait_for_stream({xmlstreamstart, _Name, Attrs}, StateData) ->
     case {xml:get_attr_s(<<"xmlns">>, Attrs),
           xml:get_attr_s(<<"xmlns:db">>, Attrs),
           xml:get_attr_s(<<"version">>, Attrs) == <<"1.0">>} of
+        %% dialback特性  
         {<<"jabber:server">>, <<"jabber:server:dialback">>, false} ->
             send_db_request(StateData);
+        %% 1.0版本并且有dialback特性      
         {<<"jabber:server">>, <<"jabber:server:dialback">>, true} when
         StateData#state.use_v10 ->
             {next_state, wait_for_features, StateData, ?FSMTIMEOUT};
@@ -352,6 +356,7 @@ wait_for_stream({xmlstreamstart, _Name, Attrs}, StateData) ->
         {<<"jabber:server">>, <<"jabber:server:dialback">>, true} when
         not StateData#state.use_v10 ->
             send_db_request(StateData);
+        %% 不使用dialback特性    
         {<<"jabber:server">>, <<"">>, true} when StateData#state.use_v10 ->
             {next_state, wait_for_features, StateData#state{db_enabled = false}, ?FSMTIMEOUT};
         {NSProvided, DB, _} ->
@@ -467,7 +472,8 @@ wait_for_validation(closed, StateData) ->
               [StateData#state.myname, StateData#state.server]),
     {stop, normal, StateData}.
 
-
+%% 等待特性
+%% 获取特性，并尝试开启TLS
 -spec wait_for_features(ejabberd:xml_stream_item(), state()) -> fsm_return().
 wait_for_features({xmlstreamelement, El}, StateData) ->
     case El of
