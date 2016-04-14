@@ -1,4 +1,11 @@
 -module(ttalk_ack).
+
+-export([send_ack/3]).
+
+-include("ejabberd.hrl").
+-include("jlib.hrl").
+-include("ttalk.hrl").
+
 send_ack(From,ID,StoreID) ->
   Server = #jid{user = <<"">>, server = From#jid.lserver,
   resource = <<"">>, luser = <<"">>, lserver = From#jid.lserver, lresource = <<"">>},

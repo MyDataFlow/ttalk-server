@@ -202,10 +202,13 @@ node_cleanup(Node) ->
 %%--------------------------------------------------------------------
 init([]) ->
     update_tables(),
+    %% 创建s2s表
     mnesia:create_table(s2s, [{ram_copies, [node()]}, {type, bag},
                               {attributes, record_info(fields, s2s)}]),
     mnesia:add_table_copy(s2s, node(), ram_copies),
     ejabberd_commands:register_commands(commands()),
+    %% 增加全局hooks
+    %% 当节点开始清理的时候，调用该模块进行清理
     ejabberd_hooks:add(node_cleanup, global, ?MODULE, node_cleanup, 50),
     {ok, #state{}}.
 
@@ -272,6 +275,7 @@ code_change(_OldVsn, State, _Extra) ->
 do_route(From, To, Packet) ->
     ?DEBUG("s2s manager~n\tfrom ~p~n\tto ~p~n\tpacket ~P~n",
            [From, To, Packet, 8]),
+    %% 找出对应的链接
     case find_connection(From, To) of
         {atomic, Pid} when is_pid(Pid) ->
             ?DEBUG("sending to process ~p~n", [Pid]),

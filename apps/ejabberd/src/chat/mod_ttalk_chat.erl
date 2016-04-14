@@ -42,9 +42,9 @@ send_ack(From, Packet = #xmlel{name = <<"message">>,attrs = Attrs},StoreID) ->
 
   case {Type,From#jid.luser} of
   	{<<"chat">>, _} ->
-      ttalk_ack:send_ack(From,ID,StoreID)
+      ttalk_ack:send_ack(From,ID,StoreID);
     {_Type , _User }->
-      ok;
+      ok
   end;
 send_ack(_From,_Packet,_StoreID)->
   ok.

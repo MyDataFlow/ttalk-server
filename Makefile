@@ -86,7 +86,7 @@ configure:
 	./tools/configure $(filter-out $@,$(MAKECMDGOALS))
 
 rel: certs rebar deps configure.out
-	. ./tools/env_setup.sh && ./rebar compile generate -f
+	./rebar compile generate -f
 
 configure.out:
 	./tools/configure full

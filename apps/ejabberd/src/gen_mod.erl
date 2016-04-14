@@ -63,6 +63,9 @@
 -callback start(Host :: ejabberd:server(), Opts :: list()) -> any().
 -callback stop(Host :: ejabberd:server()) -> any().
 
+%% 创建ets表
+%% 直接归application所有
+
 -spec start() -> 'ok'.
 start() ->
     ets:new(ejabberd_modules,
@@ -77,7 +80,9 @@ start() ->
                    Opts :: [any()]) -> any().
 start_module(Host, Module, Opts0) ->
     Opts = clear_opts(Module, Opts0),
+    %% 加载配置
     set_module_opts_mnesia(Host, Module, Opts),
+    %% 在ets中记录模块和配置
     ets:insert(ejabberd_modules,
                #ejabberd_module{module_host = {Module, Host},
                                 opts = Opts}),

@@ -109,7 +109,7 @@ register_routes(Domains) ->
                       register_route(Domain)
                   end,
                   Domains).
-
+%% 注册本地域路由
 -spec register_route_to_ldomain(binary(), domain(), handler()) -> any().
 register_route_to_ldomain(error, Domain, _) ->
     erlang:error({invalid_domain, Domain});
@@ -118,6 +118,7 @@ register_route_to_ldomain(LDomain, _, HandlerOrUndef) ->
     mnesia:dirty_write(#route{domain = LDomain, handler = Handler}).
 
 -spec make_handler(handler()) -> handler().
+%% 如果没有制定handler，我们创建一个handler
 make_handler(undefined) ->
     Pid = self(),
     {apply_fun, fun(From, To, Packet) ->
