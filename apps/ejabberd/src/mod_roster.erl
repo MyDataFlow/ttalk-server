@@ -379,7 +379,7 @@ item_to_xml(Item) ->
 
 get_roster_by_jid_t(LUser, LServer, LJID) ->
     ?BACKEND:get_roster_by_jid_t(LUser, LServer, LJID).
-%% 设置出席
+%% 设置花名册
 process_iq_set(#jid{lserver = LServer} = From, To, #iq{sub_el = SubEl} = IQ) ->
     #xmlel{children = Els} = SubEl,
     ejabberd_hooks:run(roster_set, LServer, [From, To, SubEl]),
@@ -387,6 +387,7 @@ process_iq_set(#jid{lserver = LServer} = From, To, #iq{sub_el = SubEl} = IQ) ->
     IQ#iq{type = result, sub_el = []}.
 
 process_item_set(From, To, #xmlel{attrs = Attrs} = El) ->
+    %% 取出JID
     JID1 = jid:from_binary(xml:get_attr_s(<<"jid">>, Attrs)),
     do_process_item_set(JID1, From, To, El);
 process_item_set(_From, _To, _) -> ok.
@@ -822,7 +823,16 @@ update_roster_t(LUser, LServer, LJID, Item) ->
 
 del_roster_t(LUser, LServer, LJID) ->
     ?BACKEND:del_roster_t(LUser, LServer, LJID).
-
+%% 花名册设置请求    
+%% <iq from='juliet@example.com/balcony'
+%%          id='rs1'
+%%          type='set'>
+%%       <query xmlns='jabber:iq:roster'>
+%%         <item jid='nurse@example.com'/>
+%%       </query>
+%%     </iq>
+%%
+%%
 process_item_set_t(LUser, LServer,
                    #xmlel{attrs = Attrs, children = Els}) ->
     JID1 = jid:from_binary(xml:get_attr_s(<<"jid">>, Attrs)),
