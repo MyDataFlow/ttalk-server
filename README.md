@@ -1,3 +1,4 @@
+
 TTalk
 ============
 TTalk is a open source XMPP Server based on MongooseIM. Specifically designed for enterprise purposes, it is fault-tolerant, can utilize resources of multiple clustered machines and easily scale in need of more capacity (by just adding a box/VM). 
@@ -11,11 +12,11 @@ and later underwent some major cleanup, refactorization and optimization.
 
 Major steps performed:
 
+
 *   advanced offline messages storage
 *   advanced message ack
 *   advanced group support
 *   web managent 
-
 
 How to build
 ------------
@@ -25,11 +26,10 @@ How to build
     *   GNU Make,
     *   GCC,
     *   Libexpat 1.95 or higher,
-    *   Erlang/OTP R15B02 or higher,
-    *   Reltool 0.5.4 or higher,
+    *   Erlang/OTP R16B03-1 or higher,
+    *   Reltool 0.6.4.1 or higher,
     *   OpenSSL 0.9.8 or higher, for STARTTLS, SASL and SSL encryption,
-    *   Zlib 1.2.3 or higher for Stream Compression support (XEP-0138). Optional,
-    *   PAM library. Optional. For Pluggable Authentication Modules (PAM).
+    *   Zlib 1.2.3 or higher for Stream Compression support (XEP-0138). Optional.
 
 2.  Compiling on UNIX-like systems.
 
@@ -148,7 +148,6 @@ TODO
 
 * 简化链接流程
 * 减少路由的流程
-
-
 * disable negotiate features
 * make message routing more simple
+

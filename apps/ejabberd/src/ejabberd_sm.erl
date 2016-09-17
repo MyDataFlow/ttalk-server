@@ -203,7 +203,7 @@ bounce_offline_message(#jid{server = Server} = From, To, Packet) ->
 
 
 -spec disconnect_removed_user(User :: ejabberd:user(), Server :: ejabberd:server()) ->
-    'ok' | {'error','lager_not_running'}.
+    'ok'.
 disconnect_removed_user(User, Server) ->
     ejabberd_sm:route(jid:make(<<>>, <<>>, <<>>),
                       jid:make(User, Server, <<>>),
@@ -511,7 +511,7 @@ set_session(SID, User, Server, Resource, Priority, Info) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
--spec do_route(From, To, Packet) -> any() when
+-spec do_route(From, To, Packet) -> ok when
       From :: ejabberd:jid(),
       To :: ejabberd:jid(),
       Packet :: jlib:xmlel() | ejabberd_c2s:broadcast().
