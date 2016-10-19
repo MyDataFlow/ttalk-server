@@ -162,6 +162,7 @@ sql_call(Host, Msg) when is_binary(Host) ->
             nested_op(Msg)
     end;
 %% For dedicated connections.
+%% 直接调用fsm之行相应信息
 sql_call(Pid, Msg) when is_pid(Pid) ->
     ?GEN_FSM:sync_send_event(Pid,
              {sql_cmd, Msg, now()}, ?TRANSACTION_TIMEOUT);
@@ -474,6 +475,8 @@ print_state(State) ->
        | {'stop','closed' | 'timeout',state()}.
 run_sql_cmd(Command, From, State, Timestamp) ->
     case timer:now_diff(now(), Timestamp) div 1000 of
+        %% 检查是否事物超时
+        %% 如果没有超时，就更新State
         Age when Age  < ?TRANSACTION_TIMEOUT ->
             put(?NESTING_KEY, ?TOP_LEVEL_TXN),
             put(?STATE_KEY, State),
