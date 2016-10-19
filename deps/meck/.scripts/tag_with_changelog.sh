@@ -30,8 +30,10 @@ git add CHANGELOG
 # Update version in .app file
 sed -i "" -e "s/{vsn, .*}/{vsn, \"$1\"}/g" src/meck.app.src
 sed -i "" -e "s/@version .*/@version $1/g" doc/overview.edoc
+sed -i "" -e "s/version: \".*\"/version: \"$1\"/g" package.exs
 git add src/meck.app.src
 git add doc/overview.edoc
+git add package.exs
 
 # Commit, tag and push
 git commit -m "Version $1"
@@ -39,3 +41,5 @@ git tag -s $1 -m "Version $
 
 $CHANGELOG"
 git push && git push --tags
+MIX_EXS mix hex.publish
+

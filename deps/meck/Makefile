@@ -1,5 +1,5 @@
 PLTFILE=$(CURDIR)/.deps.plt
-APP_DEPS=kernel stdlib eunit tools compiler
+APP_DEPS=kernel stdlib eunit tools compiler erts
 ERLFLAGS= -pa $(CURDIR)/.eunit -pa $(CURDIR)/ebin -pa $(CURDIR)/deps/*/ebin
 
 REBAR="./rebar"
@@ -18,7 +18,7 @@ DIALYZER_INC=$(shell test -d include && echo '-I include') $(shell test -d deps 
 .PHONY: all rebuild compile doc clean test dialyzer typer get-deps clean-deps \
 	shell clean-plt clean-doc distclean
 
-all: get-deps compile test doc
+all: get-deps compile
 
 rebuild: distclean get-deps all
 

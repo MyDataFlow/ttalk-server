@@ -1,6 +1,6 @@
-[![Release](http://img.shields.io/github/release/eproxus/meck.svg)](https://github.com/eproxus/meck/releases/latest)
-[![Build Status](http://img.shields.io/travis/eproxus/meck.svg)](http://travis-ci.org/eproxus/meck)
-[![Code Climate](http://img.shields.io/badge/code_climate-17.0-brightgreen.svg)](https://travis-ci.org/eproxus/meck)
+[![Release](http://img.shields.io/github/release/eproxus/meck.svg?style=flat-square)](https://github.com/eproxus/meck/releases/latest)
+[![Build Status](http://img.shields.io/travis/eproxus/meck.svg?style=flat-square)](http://travis-ci.org/eproxus/meck)
+[![Code Climate](http://img.shields.io/badge/code_climate-Erlang_17.4-brightgreen.svg?style=flat-square)](https://travis-ci.org/eproxus/meck)
 
 Meck
 ====
@@ -147,22 +147,33 @@ ok
 Build
 -----
 
-Meck requires `make` and [rebar][1] to build. To build Meck and run tests, go to the Meck
-directory and simply type:
+Meck requires `make` and [rebar][1] to build. To build Meck go to the Meck directory
+and simply type:
 
 ```sh
 make
 ```
 
+In order to run all tests for Meck type the following command from the same directory:
+
+```sh
+make test
+```
+
 Two things might seem alarming when running the tests:
 
   1. Warnings emitted by cover
-  2. En exception printed by SASL
+  2. An exception printed by SASL
 
 Both are expected due to the way Erlang currently prints errors. The
 important line you should look for is `All XX tests passed`, if that
 appears all is correct.
 
+Documentation can be generated through the use of the following command:
+
+```sh
+make doc
+```
 
 <a name='install'>
 
@@ -175,7 +186,7 @@ your `rebar.config` in your project root:
 ```erlang
 {deps, [
  {meck, ".*",
-  {git, "https://github.com/eproxus/meck.git", {tag, "0.8"}}}
+  {git, "https://github.com/eproxus/meck.git", {tag, "0.8.2"}}}
  ]}.
 ```
 
@@ -186,6 +197,21 @@ environment variable.
 
 
 <a name='contribute'>
+
+Caveats
+-------
+
+Meck will have trouble mocking certain modules since Meck works by
+recompiling and reloading modules. Since Erlang have a flat module
+namespace, replacing a module has to be done globally in the
+Erlang VM. This means certain modules cannot be mocked. The
+following is a non-exhaustive list of modules that can either be
+problematic to mock or not possible at all:
+
+* `erlang`
+* `os`
+* `crypto`
+* `compile`
 
 Contribute
 ----------

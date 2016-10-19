@@ -52,6 +52,7 @@
 
 -spec start_link(binary() | string()) -> 'ignore' | {'error',_} | {'ok',pid()}.
 start_link(Host) ->
+    %% 创建mnesia的表,用来保存sql的进程池
     mnesia:create_table(sql_pool,
                         [{ram_copies, [node()]},
                          {type, bag},
@@ -61,6 +62,7 @@ start_link(Host) ->
     F = fun() ->
                 mnesia:delete({sql_pool, Host})
         end,
+    %% 先清理掉老的数据
     mnesia:ets(F),
     supervisor:start_link({local, gen_mod:get_module_proc(Host, ?MODULE)},
                           ?MODULE, [Host]).
@@ -80,6 +82,7 @@ get_dedicated_connection(Host) ->
 init([Host]) ->
     PoolSize = pool_size(Host),
     StartInterval = start_interval(Host)*1000,
+    %% 创建一系列的进程
     {ok, {{one_for_one, PoolSize*10, 1},
           lists:map(
             fun(I) ->
@@ -101,7 +104,8 @@ get_random_pid(Host) ->
     Pids = get_pids(Host),
     Pids == [] andalso erlang:error({empty_sql_pool, Host}),
     lists:nth(erlang:phash(now(), length(Pids)), Pids).
-
+%% 向进程池中加入当前进程
+%% 进程池就是一个mnesia表
 -spec add_pid(_, pid()) -> any().
 add_pid(Host, Pid) ->
     F = fun() ->

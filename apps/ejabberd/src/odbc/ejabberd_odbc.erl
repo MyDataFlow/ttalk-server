@@ -118,7 +118,7 @@
 start_link(Host, StartInterval, Dedicated) when is_boolean(Dedicated) ->
     ?GEN_FSM:start_link(ejabberd_odbc, [Host, StartInterval, self(), Dedicated],
                         fsm_limit_opts() ++ ?FSMOPTS).
-
+%% 在特定的节点上执行相应的SQL查询
 -spec sql_query(Host :: odbc_server(), Query :: any()) -> any().
 sql_query(Host, Query) ->
     sql_call(Host, {sql_query, Query}).
@@ -154,6 +154,8 @@ sql_bloc(Host, F) ->
 sql_call(Host, Msg) when is_binary(Host) ->
     case get(?STATE_KEY) of
         undefined ->
+            %% 没有状态的时候，随机拿一个ODBC进程
+            %% 说明是外部调用
             Worker = ejabberd_odbc_sup:get_random_pid(Host),
             sql_call(Worker, Msg);
         _State ->
@@ -301,8 +303,11 @@ init([Host, StartInterval, ParentPid, Dedicated]) ->
         false ->
             ejabberd_odbc_sup:add_pid(Host, self())
     end,
+    %% 监控创建者的PID
     erlang:monitor(process, ParentPid),
+    %% 自己处理进程退出事件
     erlang:process_flag(trap_exit, true),
+    %% 立刻进入connecting阶段
     {ok, connecting, #state{db_type = DBType,
                 parent_pid = ParentPid,
                 dedicated = Dedicated,
@@ -314,6 +319,7 @@ init([Host, StartInterval, ParentPid, Dedicated]) ->
 -spec connecting(_, state())
       -> {'next_state','connecting' | 'session_established',_}.
 connecting(connect, #state{host = Host} = State) ->
+    %% 得到后段类型
     ConnectRes = case db_opts(Host) of
                      [mysql | Args] ->
                          apply(fun mysql_connect/5, Args);
@@ -347,7 +353,7 @@ connecting(connect, #state{host = Host} = State) ->
 connecting(Event, State) ->
     ?WARNING_MSG("unexpected event in 'connecting': ~p", [Event]),
     {next_state, connecting, State}.
-
+%% 收到了keepalive性质的查询请求,但是自己处在连接状态，这就需要报错了
 -spec connecting(_, From :: any(), state()) ->
   {'next_state','connecting',_} | {'reply',{'error','badarg'},'connecting',_}.
 connecting({sql_cmd, {sql_query, ?KEEPALIVE_QUERY}, _Timestamp}, From, State) ->
@@ -355,6 +361,7 @@ connecting({sql_cmd, {sql_query, ?KEEPALIVE_QUERY}, _Timestamp}, From, State) ->
     {next_state, connecting, State};
 %% 收到消息，但是还没有建立链接
 %% 进行链接后再执行
+%% 如果超过一定的长度了，那么直接全部都返回错误，清空
 connecting({sql_cmd, Command, Timestamp} = Req, From, State) ->
     ?DEBUG("queuing pending request while connecting:~n\t~p", [Req]),
     {Len, PendingRequests} = State#state.pending_requests,
@@ -376,6 +383,7 @@ connecting(Request, {Who, _Ref}, State) ->
                  [Request, Who]),
     {reply, {error, badarg}, connecting, State}.
 
+%% 链接成功后，开始执行SQL命令
 -spec session_established(_, From :: _, state())
                        -> {'next_state','session_established',_}
                         | {'stop','closed' | 'timeout',_}

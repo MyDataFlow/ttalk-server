@@ -35,7 +35,7 @@
 -type treap() :: {hashkey(), any(), any(), treap(), treap()} | nil.
 
 -export_type([treap/0]).
-%% 树堆
+
 empty() -> nil.
 
 insert(Key, Priority, Value, Tree) ->
