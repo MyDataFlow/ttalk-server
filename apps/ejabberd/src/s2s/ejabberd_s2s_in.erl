@@ -128,6 +128,7 @@ start(SockData, Opts) ->
 
 -spec start_link(_,_) -> 'ignore' | {'error',_} | {'ok',pid()}.
 start_link(SockData, Opts) ->
+		%% 启动FSM状态机
     gen_fsm:start_link(ejabberd_s2s_in, [SockData, Opts], ?FSMOPTS).
 
 
@@ -168,6 +169,7 @@ init([{SockMod, Socket}, Opts]) ->
                   CertFile ->
                       [{certfile, CertFile}]
               end,
+		%% 启动一个计时器用来跟踪s2s的链接超时
     Timer = erlang:start_timer(?S2STIMEOUT, self(), []),
     {ok, wait_for_stream,
      #state{socket = Socket,
@@ -187,16 +189,19 @@ init([{SockMod, Socket}, Opts]) ->
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}
 %%----------------------------------------------------------------------
-
+%% 等待数据流
 -spec wait_for_stream(ejabberd:xml_stream_item(), state()) -> fsm_return().
 wait_for_stream({xmlstreamstart, _Name, Attrs}, StateData) ->
     case {xml:get_attr_s(<<"xmlns">>, Attrs),
           xml:get_attr_s(<<"xmlns:db">>, Attrs),
           xml:get_attr_s(<<"to">>, Attrs),
           xml:get_attr_s(<<"version">>, Attrs) == <<"1.0">>} of
+				%% 是否是Jabber的Server，目标服务器，版本是否是1.0
         {<<"jabber:server">>, _, Server, true} when
               StateData#state.tls and (not StateData#state.authenticated) ->
+						%% 版本相同就发送相应的text
             send_text(StateData, ?STREAM_HEADER(<<" version='1.0'">>)),
+						%% 检查是否开启了SASL
             SASL =
                 if
                     StateData#state.tls_enabled ->
@@ -221,6 +226,7 @@ wait_for_stream({xmlstreamstart, _Name, Attrs}, StateData) ->
                     true ->
                         []
                 end,
+						%% 检查是否使用了TLS
             StartTLS = if
                            StateData#state.tls_enabled ->
                                [];
@@ -232,6 +238,7 @@ wait_for_stream({xmlstreamstart, _Name, Attrs}, StateData) ->
                                       attrs = [{<<"xmlns">>, ?NS_TLS}],
                                       children = [#xmlel{name = <<"required">>}]}]
                        end,
+						%% 如果使用SASL了就需要检查证书
             case SASL of
                 {error_cert_verif, CertVerifyResult, Certificate} ->
                     CertError = ejabberd_tls:get_cert_verify_string(CertVerifyResult, Certificate),
@@ -243,6 +250,7 @@ wait_for_stream({xmlstreamstart, _Name, Attrs}, StateData) ->
 
                     {stop, normal, StateData};
                 _ ->
+										%% 如果是成功的，就发送features流 
                     send_element(StateData,
                                  #xmlel{name = <<"stream:features">>,
                                         children = SASL ++ StartTLS ++
@@ -388,7 +396,7 @@ wait_for_feature_request({xmlstreamerror, _}, StateData) ->
 wait_for_feature_request(closed, StateData) ->
     {stop, normal, StateData}.
 
-
+%% 数据流建立成功了
 -spec stream_established(ejabberd:xml_stream_item(), state()) -> fsm_return().
 stream_established({xmlstreamelement, El}, StateData) ->
     cancel_timer(StateData#state.timer),
