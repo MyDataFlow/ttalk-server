@@ -237,26 +237,26 @@ static SSL_CTX *hash_table_lookup(char *key_file, time_t *pmtime)
 
 static ErlDrvData tls_drv_start(ErlDrvPort port, char *buff)
 {
-   driver_lock_driver(port);
-   tls_data *d = (tls_data *)driver_alloc(sizeof(tls_data));
-   d->port = port;
-   d->bio_read = NULL;
-   d->bio_write = NULL;
-   d->ssl = NULL;
+		 driver_lock_driver(port);
+		 tls_data *d = (tls_data *)driver_alloc(sizeof(tls_data));
+		 d->port = port;
+		 d->bio_read = NULL;
+		 d->bio_write = NULL;
+		 d->ssl = NULL;
 
-   set_port_control_flags(port, PORT_CONTROL_FLAG_BINARY);
+		 set_port_control_flags(port, PORT_CONTROL_FLAG_BINARY);
 
-   return (ErlDrvData)d;
+		 return (ErlDrvData)d;
 }
 
 static void tls_drv_stop(ErlDrvData handle)
 {
-   tls_data *d = (tls_data *)handle;
+		 tls_data *d = (tls_data *)handle;
 
-   if (d->ssl != NULL)
-      SSL_free(d->ssl);
+		 if (d->ssl != NULL)
+					SSL_free(d->ssl);
 
-   driver_free((char *)handle);
+		 driver_free((char *)handle);
 }
 
 static void tls_drv_finish()
@@ -269,10 +269,10 @@ static void tls_drv_finish()
    for (i = 0; i < 1 << (level + 1); i++) {
       el = ht.buckets[i];
       while (el != NULL) {
-	 if (el->ssl_ctx != NULL)
-	    SSL_CTX_free(el->ssl_ctx);
-	 driver_free(el->key_file);
-	 el = el->next;
+					 if (el->ssl_ctx != NULL)
+								SSL_CTX_free(el->ssl_ctx);
+					 driver_free(el->key_file);
+					 el = el->next;
       }
    }
 
@@ -289,15 +289,16 @@ static int is_key_file_modified(char *file, time_t *key_file_mtime)
 
    if (stat(file, &file_stat))
    {
-      *key_file_mtime = 0;
-      return 1;
+				*key_file_mtime = 0;
+				return 1;
    } else {
-      if (*key_file_mtime != file_stat.st_mtime)
-      {
-	 *key_file_mtime = file_stat.st_mtime;
-	 return 1;
-      } else
-	 return 0;
+				if (*key_file_mtime != file_stat.st_mtime)
+				{
+						 *key_file_mtime = file_stat.st_mtime;
+						 return 1;
+				} else {
+						 return 0;
+				}
    }
 }
 
@@ -365,71 +366,70 @@ static ErlDrvSSizeT tls_drv_control(ErlDrvData handle,
    {
       case SET_CERTIFICATE_FILE_ACCEPT:
       case SET_CERTIFICATE_FILE_CONNECT: {
-	 time_t mtime = 0;
-	 // 找到SSL的上下文
-	 SSL_CTX *ssl_ctx = hash_table_lookup(buf, &mtime);
-	 if (is_key_file_modified(buf, &mtime) || ssl_ctx == NULL)
-	 {
-	    SSL_CTX *ctx;
-	    char* ciphers;
-	    int buflen = strlen(buf);
+					 time_t mtime = 0;
+					 // 找到SSL的上下文
+					 SSL_CTX *ssl_ctx = hash_table_lookup(buf, &mtime);
+					 if (is_key_file_modified(buf, &mtime) || ssl_ctx == NULL)
+					 {
+								SSL_CTX *ctx;
+								char* ciphers;
+								int buflen = strlen(buf);
 
-	    hash_table_insert(buf, mtime, NULL);
+								hash_table_insert(buf, mtime, NULL);
+								
+								ctx = SSL_CTX_new(SSLv23_method());
+								die_unless(ctx, "SSL_CTX_new failed");
+								
+								res = SSL_CTX_use_certificate_chain_file(ctx, buf);
+								die_unless(res > 0, "SSL_CTX_use_certificate_file failed");
 
-	    ctx = SSL_CTX_new(SSLv23_method());
-	    die_unless(ctx, "SSL_CTX_new failed");
+								res = SSL_CTX_use_PrivateKey_file(ctx, buf, SSL_FILETYPE_PEM);
+								die_unless(res > 0, "SSL_CTX_use_PrivateKey_file failed");
 
-	    res = SSL_CTX_use_certificate_chain_file(ctx, buf);
-	    die_unless(res > 0, "SSL_CTX_use_certificate_file failed");
+								res = SSL_CTX_check_private_key(ctx);
+								die_unless(res > 0, "SSL_CTX_check_private_key failed");
 
-	    res = SSL_CTX_use_PrivateKey_file(ctx, buf, SSL_FILETYPE_PEM);
-	    die_unless(res > 0, "SSL_CTX_use_PrivateKey_file failed");
+								SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_TICKET);
 
-	    res = SSL_CTX_check_private_key(ctx);
-	    die_unless(res > 0, "SSL_CTX_check_private_key failed");
+								if(buflen + 1 == len) //no ciphers param
+								{
+										 ciphers = CIPHERS;
+								}else{
+										 ciphers = buf + buflen + 1;
+								}
 
-	    SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_TICKET);
+								SSL_CTX_set_cipher_list(ctx, ciphers);
+								if(SSLeay() > 0x1000005fl)
+								{
+										 EC_KEY *ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
+										 if(ecdh)
+										 {
+													SSL_CTX_set_options(ctx, SSL_OP_SINGLE_ECDH_USE);
+													SSL_CTX_set_tmp_ecdh(ctx, ecdh);
+													EC_KEY_free(ecdh);
+										 }
+								}
 
-	    if(buflen + 1 == len) //no ciphers param
-	    {
-	        ciphers = CIPHERS;
-	    }else
-	    {
-	        ciphers = buf + buflen + 1;
-	    }
+								DH *dh;
+								dh = DH_new();
+								
+								if(dh)
+								{
+										 dh->p = BN_bin2bn(dh1024_p, sizeof(dh1024_p), NULL);
+										 dh->g = BN_bin2bn(dh1024_g, sizeof(dh1024_g), NULL);
+										 
+										 if (dh->p && dh->g )
+										 {
+													SSL_CTX_set_options(ctx, SSL_OP_SINGLE_DH_USE);
+													SSL_CTX_set_tmp_dh(ctx, dh);
+										 }
+										 DH_free(dh);
+								}
 
-	    SSL_CTX_set_cipher_list(ctx, ciphers);
-	    if(SSLeay() > 0x1000005fl)
-	    {
-	        EC_KEY *ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
-	        if(ecdh)
-	        {
-	            SSL_CTX_set_options(ctx, SSL_OP_SINGLE_ECDH_USE);
-	            SSL_CTX_set_tmp_ecdh(ctx, ecdh);
-	            EC_KEY_free(ecdh);
-	        }
-	    }
-
-	    DH *dh;
-	    dh = DH_new();
-
-	    if(dh)
-	    {
-	        dh->p = BN_bin2bn(dh1024_p, sizeof(dh1024_p), NULL);
-	        dh->g = BN_bin2bn(dh1024_g, sizeof(dh1024_g), NULL);
-
-	        if (dh->p && dh->g )
-	        {
-	            SSL_CTX_set_options(ctx, SSL_OP_SINGLE_DH_USE);
-	            SSL_CTX_set_tmp_dh(ctx, dh);
-	        }
-	        DH_free(dh);
-	    }
-
-	    SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_OFF);
-	    SSL_CTX_set_default_verify_paths(ctx);
+								SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_OFF);
+								SSL_CTX_set_default_verify_paths(ctx);
 #ifdef SSL_MODE_RELEASE_BUFFERS
-	    SSL_CTX_set_mode(ctx, SSL_MODE_RELEASE_BUFFERS);
+								SSL_CTX_set_mode(ctx, SSL_MODE_RELEASE_BUFFERS);
 #endif
 	    /* SSL_CTX_load_verify_locations(ctx, "/etc/ejabberd/ca_certificates.pem", NULL); */
 	    /* SSL_CTX_load_verify_locations(ctx, NULL, "/etc/ejabberd/ca_certs/"); */
@@ -437,154 +437,154 @@ static ErlDrvSSizeT tls_drv_control(ErlDrvData handle,
 	    /* This IF is commented to allow verification in all cases: */
 	    /* if (command == SET_CERTIFICATE_FILE_ACCEPT) */
 	    /* { */
-	       SSL_CTX_set_verify(ctx,
-				  SSL_VERIFY_PEER|SSL_VERIFY_CLIENT_ONCE,
-				  verify_callback);
+								SSL_CTX_set_verify(ctx,
+																	 SSL_VERIFY_PEER|SSL_VERIFY_CLIENT_ONCE,
+																	 verify_callback);
 	    /* } */
 
-	    ssl_ctx = ctx;
-	    hash_table_insert(buf, mtime, ssl_ctx);
-	 }
+								ssl_ctx = ctx;
+								hash_table_insert(buf, mtime, ssl_ctx);
+					 }
 
-	 d->ssl = SSL_new(ssl_ctx);
-	 die_unless(d->ssl, "SSL_new failed");
+					 d->ssl = SSL_new(ssl_ctx);
+					 die_unless(d->ssl, "SSL_new failed");
 
-	 if (flags & VERIFY_NONE)
-	    SSL_set_verify(d->ssl, SSL_VERIFY_NONE, verify_callback);
+					 if (flags & VERIFY_NONE)
+								SSL_set_verify(d->ssl, SSL_VERIFY_NONE, verify_callback);
 
-	 d->bio_read = BIO_new(BIO_s_mem());
-	 d->bio_write = BIO_new(BIO_s_mem());
-	 // 绑定ssl的后端IO
-	 SSL_set_bio(d->ssl, d->bio_read, d->bio_write);
+					 d->bio_read = BIO_new(BIO_s_mem());
+					 d->bio_write = BIO_new(BIO_s_mem());
+					 // 绑定ssl的后端IO
+					 SSL_set_bio(d->ssl, d->bio_read, d->bio_write);
 
-	 if (command == SET_CERTIFICATE_FILE_ACCEPT) {
-            SSL_set_options(
-               d->ssl,
-               SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
-	    SSL_set_accept_state(d->ssl);
-	 } else {
-            SSL_set_options(
-               d->ssl,
-               SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
-            SSL_set_connect_state(d->ssl);
-	 }
-	 break;
+					 if (command == SET_CERTIFICATE_FILE_ACCEPT) {
+								SSL_set_options(
+										 d->ssl,
+										 SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
+								SSL_set_accept_state(d->ssl);
+					 } else {
+								SSL_set_options(
+										 d->ssl,
+										 SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
+								SSL_set_connect_state(d->ssl);
+					 }
+					 break;
       }
 
       case SET_ENCRYPTED_INPUT:
-	 	die_unless(d->ssl, "SSL not initialized");
-	 	//将数据写到等待读的队列中
-	 	BIO_write(d->bio_read, buf, len);
-	 break;
-      case SET_DECRYPTED_OUTPUT:
-	 die_unless(d->ssl, "SSL not initialized");
-	 // 向外写出没有加密的数据
-	 res = SSL_write(d->ssl, buf, len);
-	 if (res <= 0)
-	 {
-	    res = SSL_get_error(d->ssl, res);
-	    if (res == SSL_ERROR_WANT_READ || res == SSL_ERROR_WANT_WRITE)
-	    {
-	       b = driver_alloc_binary(1);
-	       b->orig_bytes[0] = 2;
-	       *rbuf = (char *)b;
-	       return 1;
-	    } else {
-	       die_unless(0, "SSL_write failed");
-	    }
-	 }
-	 break;
-      case GET_ENCRYPTED_OUTPUT:
-	 die_unless(d->ssl, "SSL not initialized");
-	 size = BUF_SIZE + 1;
-	 rlen = 1;
-	 b = driver_alloc_binary(size);
-	 b->orig_bytes[0] = 0;
-	 while ((res = BIO_read(d->bio_write,
-				b->orig_bytes + rlen, BUF_SIZE)) > 0)
-	 {
-	    //printf("%d bytes of encrypted data read from state machine\r\n", res);
+					 die_unless(d->ssl, "SSL not initialized");
+					 //将数据写到等待读的队列中
+					 BIO_write(d->bio_read, buf, len);
+					 break;
+	 case SET_DECRYPTED_OUTPUT:
+				die_unless(d->ssl, "SSL not initialized");
+				// 向外写出没有加密的数据
+				res = SSL_write(d->ssl, buf, len);
+				if (res <= 0)
+				{
+						 res = SSL_get_error(d->ssl, res);
+						 if (res == SSL_ERROR_WANT_READ || res == SSL_ERROR_WANT_WRITE)
+						 {
+									b = driver_alloc_binary(1);
+									b->orig_bytes[0] = 2;
+									*rbuf = (char *)b;
+									return 1;
+						 } else {
+									die_unless(0, "SSL_write failed");
+						 }
+				}
+				break;
+	 case GET_ENCRYPTED_OUTPUT:
+				die_unless(d->ssl, "SSL not initialized");
+				size = BUF_SIZE + 1;
+				rlen = 1;
+				b = driver_alloc_binary(size);
+				b->orig_bytes[0] = 0;
+				while ((res = BIO_read(d->bio_write,
+															 b->orig_bytes + rlen, BUF_SIZE)) > 0)
+				{
+						 //printf("%d bytes of encrypted data read from state machine\r\n", res);
 
-	    rlen += res;
-	    size += BUF_SIZE;
-	    b = driver_realloc_binary(b, size);
-	 }
-	 b = driver_realloc_binary(b, rlen);
-	 *rbuf = (char *)b;
-	 return rlen;
-      case GET_DECRYPTED_INPUT:
+						 rlen += res;
+						 size += BUF_SIZE;
+						 b = driver_realloc_binary(b, size);
+				}
+				b = driver_realloc_binary(b, rlen);
+				*rbuf = (char *)b;
+				return rlen;
+	 case GET_DECRYPTED_INPUT:
       // 如果没有完成handshark
-	 if (!SSL_is_init_finished(d->ssl))
-	 {
-	 	// 开始进行ssl的握手
-	    res = SSL_do_handshake(d->ssl);
-	    if (res <= 0)
-	       die_unless(SSL_get_error(d->ssl, res) == SSL_ERROR_WANT_READ,
-			  "SSL_do_handshake failed");
-	 } else {
-	    size = BUF_SIZE + 1;
-	    rlen = 1;
-	    b = driver_alloc_binary(size);
-	    b->orig_bytes[0] = 0;
-	    // 尝试读取
-	    while ((res = SSL_read(d->ssl,
-				   b->orig_bytes + rlen, BUF_SIZE)) > 0)
-	    {
-	       //printf("%d bytes of decrypted data read from state machine\r\n",res);
-	       rlen += res;
-	       size += BUF_SIZE;
-	       // 每次按照1024字节进行扩张内存区域
-	       b = driver_realloc_binary(b, size);
-	    }
+				if (!SSL_is_init_finished(d->ssl))
+				{
+						 // 开始进行ssl的握手
+						 res = SSL_do_handshake(d->ssl);
+						 if (res <= 0)
+									die_unless(SSL_get_error(d->ssl, res) == SSL_ERROR_WANT_READ,
+														 "SSL_do_handshake failed");
+				} else {
+						 size = BUF_SIZE + 1;
+						 rlen = 1;
+						 b = driver_alloc_binary(size);
+						 b->orig_bytes[0] = 0;
+						 // 尝试读取
+						 while ((res = SSL_read(d->ssl,
+																		b->orig_bytes + rlen, BUF_SIZE)) > 0)
+						 {
+									//printf("%d bytes of decrypted data read from state machine\r\n",res);
+									rlen += res;
+									size += BUF_SIZE;
+									// 每次按照1024字节进行扩张内存区域
+									b = driver_realloc_binary(b, size);
+						 }
 
-	    if (res < 0)
-	    {
-	       int err = SSL_get_error(d->ssl, res);
+						 if (res < 0)
+						 {
+									int err = SSL_get_error(d->ssl, res);
 
-	       if (err == SSL_ERROR_WANT_READ)
-	       {
-		  //printf("SSL_read wants more data\r\n");
-		  //return 0;
-	       }
-	       // TODO
-	    }
-	    b = driver_realloc_binary(b, rlen);
-	    *rbuf = (char *)b;
-	    // 最后一次读区的一定是0
-	    return rlen;
-	 }
-	 break;
+									if (err == SSL_ERROR_WANT_READ)
+									{
+											 //printf("SSL_read wants more data\r\n");
+											 //return 0;
+									}
+									// TODO
+						 }
+						 b = driver_realloc_binary(b, rlen);
+						 *rbuf = (char *)b;
+						 // 最后一次读区的一定是0
+						 return rlen;
+				}
+				break;
       case GET_PEER_CERTIFICATE:
-	 cert = SSL_get_peer_certificate(d->ssl);
-	 if (cert == NULL)
-	 {
-	    b = driver_alloc_binary(1);
-	    b->orig_bytes[0] = 1;
-	    *rbuf = (char *)b;
-	    return 1;
-	 } else {
-	    unsigned char *tmp_buf;
-	    rlen = i2d_X509(cert, NULL);
-	    if (rlen >= 0)
-	    {
-	       rlen++;
-	       b = driver_alloc_binary(rlen);
-	       b->orig_bytes[0] = 0;
-	       tmp_buf = (unsigned char *)&b->orig_bytes[1];
-	       i2d_X509(cert, &tmp_buf);
-	       X509_free(cert);
-	       *rbuf = (char *)b;
-	       return rlen;
-	    } else
-	       X509_free(cert);
-	 }
-	 break;
+					 cert = SSL_get_peer_certificate(d->ssl);
+					 if (cert == NULL)
+					 {
+								b = driver_alloc_binary(1);
+								b->orig_bytes[0] = 1;
+								*rbuf = (char *)b;
+								return 1;
+					 } else {
+								unsigned char *tmp_buf;
+								rlen = i2d_X509(cert, NULL);
+								if (rlen >= 0)
+								{
+										 rlen++;
+										 b = driver_alloc_binary(rlen);
+										 b->orig_bytes[0] = 0;
+										 tmp_buf = (unsigned char *)&b->orig_bytes[1];
+										 i2d_X509(cert, &tmp_buf);
+										 X509_free(cert);
+										 *rbuf = (char *)b;
+										 return rlen;
+								} else
+										 X509_free(cert);
+					 }
+					 break;
       case GET_VERIFY_RESULT:
-	 b = driver_alloc_binary(1);
-	 b->orig_bytes[0] = SSL_get_verify_result(d->ssl);
-	 *rbuf = (char *)b;
-	 return 1;
-	 break;
+					 b = driver_alloc_binary(1);
+					 b->orig_bytes[0] = SSL_get_verify_result(d->ssl);
+					 *rbuf = (char *)b;
+					 return 1;
+					 break;
    }
 
    b = driver_alloc_binary(1);
